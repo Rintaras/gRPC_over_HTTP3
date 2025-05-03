@@ -8,6 +8,7 @@ import os
 import sys
 import csv
 import statistics
+import argparse
 from pathlib import Path
 
 try:
@@ -67,7 +68,7 @@ def calculate_statistics(response_times):
     
     return stats
 
-def generate_graphs(benchmark_dir):
+def generate_graphs(benchmark_dir, debug: bool, dpi: int):
     """Generate performance comparison graphs"""
     if not MATPLOTLIB_AVAILABLE:
         print("Skipping graph generation - matplotlib not available")
@@ -130,10 +131,11 @@ def generate_graphs(benchmark_dir):
         print("No valid data for graph generation")
         return
     
-    print(f"Debug: Found {len(conditions)} conditions: {conditions}")
-    print(f"Debug: h2_means: {h2_means}")
-    print(f"Debug: h3_means: {h3_means}")
-    print(f"Debug: condition_labels: {condition_labels}")
+    if debug:
+        print(f"Debug: Found {len(conditions)} conditions: {conditions}")
+        print(f"Debug: h2_means: {h2_means}")
+        print(f"Debug: h3_means: {h3_means}")
+        print(f"Debug: condition_labels: {condition_labels}")
     
     # Create the graph
     plt.figure(figsize=(12, 8))
@@ -182,15 +184,15 @@ def generate_graphs(benchmark_dir):
     
     # Save the graph
     graph_file = os.path.join(benchmark_dir, 'performance_comparison_graph.png')
-    plt.savefig(graph_file, dpi=300, bbox_inches='tight')
+    plt.savefig(graph_file, dpi=dpi, bbox_inches='tight')
     plt.close()
     
     print(f"Performance graph generated: {graph_file}")
     
     # Generate summary statistics graph
-    generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_stds, h3_stds)
+    generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_stds, h3_stds, dpi)
 
-def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_stds, h3_stds):
+def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_stds, h3_stds, dpi: int):
     """Generate a summary statistics graph with 2-panel layout"""
     if not MATPLOTLIB_AVAILABLE:
         return
@@ -260,12 +262,12 @@ def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_std
     
     # Save the summary graph
     summary_graph_file = os.path.join(benchmark_dir, 'performance_summary_graph.png')
-    plt.savefig(summary_graph_file, dpi=300, bbox_inches='tight')
+    plt.savefig(summary_graph_file, dpi=dpi, bbox_inches='tight')
     plt.close()
     
     print(f"Summary graph generated: {summary_graph_file}")
 
-def generate_text_report(benchmark_dir):
+def generate_text_report(benchmark_dir, summary_csv_path: str | None = None, delimiter_hint: str | None = None):
     """Generate a text-based performance report"""
     report_file = os.path.join(benchmark_dir, 'performance_report.txt')
     
@@ -329,6 +331,7 @@ def generate_text_report(benchmark_dir):
         f.write("-" * 25 + "\n")
         
         # Compare same network conditions
+        comparison_rows = []
         for h2_file in sorted(h2_files):
             # Extract network conditions from filename
             conditions = h2_file.replace('h2_', '').replace('.csv', '')
@@ -352,28 +355,48 @@ def generate_text_report(benchmark_dir):
                             f.write(f"  HTTP/3 Improvement: {improvement:.1f}%\n")
                         else:
                             f.write(f"  HTTP/2 Better by: {abs(improvement):.1f}%\n")
+                        comparison_rows.append([
+                            conditions,
+                            f"{h2_stats['mean']:.2f}",
+                            f"{h3_stats['mean']:.2f}",
+                            f"{improvement:.1f}"
+                        ])
     
     print(f"Performance report generated: {report_file}")
 
+    # Optional: write summary CSV
+    if summary_csv_path and comparison_rows:
+        try:
+            with open(summary_csv_path, 'w', newline='') as sf:
+                writer = csv.writer(sf)
+                writer.writerow(["condition", "http2_mean_ms", "http3_mean_ms", "improvement_pct"])
+                writer.writerows(comparison_rows)
+            print(f"Summary CSV written: {summary_csv_path}")
+        except Exception as e:
+            print(f"Failed to write summary CSV: {e}")
+
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python3 simple_graph_generator.py <benchmark_directory>")
-        sys.exit(1)
-    
-    benchmark_dir = sys.argv[1]
-    
+    parser = argparse.ArgumentParser(description="Generate performance report and graphs for HTTP/2 vs HTTP/3 benchmarks")
+    parser.add_argument("benchmark_directory", help="Directory containing h2_*.csv and h3_*.csv")
+    parser.add_argument("--dpi", type=int, default=300, help="DPI for saved figures (default: 300)")
+    parser.add_argument("--summary-csv", dest="summary_csv", default=None, help="Optional path to write comparison summary CSV")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    args = parser.parse_args()
+
+    benchmark_dir = args.benchmark_directory
+
     if not os.path.exists(benchmark_dir):
         print(f"Directory not found: {benchmark_dir}")
         sys.exit(1)
-    
+
     print(f"Generating performance report and graphs for: {benchmark_dir}")
-    
-    # Generate text report
-    generate_text_report(benchmark_dir)
-    
-    # Generate graphs
-    generate_graphs(benchmark_dir)
-    
+
+    # Generate text report and optional CSV
+    generate_text_report(benchmark_dir, summary_csv_path=args.summary_csv)
+
+    # Generate graphs with options
+    generate_graphs(benchmark_dir, debug=args.debug, dpi=args.dpi)
+
     print("Report and graph generation completed!")
 
 if __name__ == "__main__":
