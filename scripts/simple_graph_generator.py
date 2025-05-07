@@ -68,7 +68,7 @@ def calculate_statistics(response_times):
     
     return stats
 
-def generate_graphs(benchmark_dir, debug: bool, dpi: int):
+def generate_graphs(benchmark_dir, debug: bool, dpi: int, only_conditions: list[str] | None = None):
     """Generate performance comparison graphs"""
     if not MATPLOTLIB_AVAILABLE:
         print("Skipping graph generation - matplotlib not available")
@@ -93,7 +93,8 @@ def generate_graphs(benchmark_dir, debug: bool, dpi: int):
     for h2_file in h2_files:
         condition = h2_file.replace('h2_', '').replace('.csv', '')
         if f"h3_{condition}.csv" in h3_files:
-            conditions.append(condition)
+            if only_conditions is None or condition in only_conditions:
+                conditions.append(condition)
     
     if not conditions:
         print("No matching HTTP/2 and HTTP/3 files found")
@@ -381,6 +382,7 @@ def main():
     parser.add_argument("--dpi", type=int, default=300, help="DPI for saved figures (default: 300)")
     parser.add_argument("--summary-csv", dest="summary_csv", default=None, help="Optional path to write comparison summary CSV")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--only", help="Comma-separated condition keys to include (e.g., '0ms_3pct,75ms_3pct')")
     args = parser.parse_args()
 
     benchmark_dir = args.benchmark_directory
@@ -395,7 +397,10 @@ def main():
     generate_text_report(benchmark_dir, summary_csv_path=args.summary_csv)
 
     # Generate graphs with options
-    generate_graphs(benchmark_dir, debug=args.debug, dpi=args.dpi)
+    only = None
+    if args.only:
+        only = [c.strip() for c in args.only.split(',') if c.strip()]
+    generate_graphs(benchmark_dir, debug=args.debug, dpi=args.dpi, only_conditions=only)
 
     print("Report and graph generation completed!")
 
