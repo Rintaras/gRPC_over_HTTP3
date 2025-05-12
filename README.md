@@ -91,12 +91,20 @@
 
 ### 自動グラフ生成
 ```bash
-python3 scripts/simple_graph_generator.py <log_directory>
+python3 scripts/simple_graph_generator.py <log_directory> \
+  --dpi 300 \
+  --summary-csv <path/to/summary.csv> \
+  --only 0ms_3pct,75ms_3pct \
+  --format png \
+  --title "HTTP/2 vs HTTP/3 Benchmark"
 ```
 - **2段組みグラフ**: レスポンス時間比較 + パフォーマンス改善率
 - **CSV解析**: カンマ・タブ区切り両対応
 - **エラーバーなし**: クリーンなグラフ表示
 - **出力形式**: PNG（高解像度300dpi）
+ - **オプション**: `--only` で条件キーを絞り込み、`--summary-csv` で比較サマリーCSVを出力
+
+注: 旧 `compute_percentiles.py` はサマリー出力へ統合済みです。
 
 ### 生成されるグラフ
 - `performance_comparison_graph.png`: シンプルな比較グラフ
