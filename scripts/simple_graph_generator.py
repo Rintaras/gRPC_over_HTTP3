@@ -68,7 +68,7 @@ def calculate_statistics(response_times):
     
     return stats
 
-def generate_graphs(benchmark_dir, debug: bool, dpi: int, only_conditions: list[str] | None = None):
+def generate_graphs(benchmark_dir, debug: bool, dpi: int, only_conditions: list[str] | None = None, annotate: bool = True):
     """Generate performance comparison graphs"""
     if not MATPLOTLIB_AVAILABLE:
         print("Skipping graph generation - matplotlib not available")
@@ -166,20 +166,21 @@ def generate_graphs(benchmark_dir, debug: bool, dpi: int, only_conditions: list[
                 ha='center', va='bottom', fontsize=10)
     
     # Add performance improvement annotations
-    for i, (h2_mean, h3_mean) in enumerate(zip(h2_means, h3_means)):
-        if h3_mean > 0:
-            improvement = ((h2_mean - h3_mean) / h2_mean) * 100
-            if abs(improvement) > 5:  # Only show significant differences
-                if improvement > 0:
-                    plt.annotate(f'HTTP/3\n+{improvement:.1f}%', 
-                                xy=(i + width/2, h3_mean), xytext=(i + width/2, h3_mean + max(h3_means) * 0.1),
-                                ha='center', va='bottom', fontsize=9, fontweight='bold',
-                                arrowprops=dict(arrowstyle='->', color='green', lw=1.5))
-                else:
-                    plt.annotate(f'HTTP/2\n+{abs(improvement):.1f}%', 
-                                xy=(i - width/2, h2_mean), xytext=(i - width/2, h2_mean + max(h2_means) * 0.1),
-                                ha='center', va='bottom', fontsize=9, fontweight='bold',
-                                arrowprops=dict(arrowstyle='->', color='blue', lw=1.5))
+    if annotate:
+        for i, (h2_mean, h3_mean) in enumerate(zip(h2_means, h3_means)):
+            if h3_mean > 0:
+                improvement = ((h2_mean - h3_mean) / h2_mean) * 100
+                if abs(improvement) > 5:  # Only show significant differences
+                    if improvement > 0:
+                        plt.annotate(f'HTTP/3\n+{improvement:.1f}%', 
+                                    xy=(i + width/2, h3_mean), xytext=(i + width/2, h3_mean + max(h3_means) * 0.1),
+                                    ha='center', va='bottom', fontsize=9, fontweight='bold',
+                                    arrowprops=dict(arrowstyle='->', color='green', lw=1.5))
+                    else:
+                        plt.annotate(f'HTTP/2\n+{abs(improvement):.1f}%', 
+                                    xy=(i - width/2, h2_mean), xytext=(i - width/2, h2_mean + max(h2_means) * 0.1),
+                                    ha='center', va='bottom', fontsize=9, fontweight='bold',
+                                    arrowprops=dict(arrowstyle='->', color='blue', lw=1.5))
     
     plt.tight_layout()
     
@@ -382,6 +383,7 @@ def main():
     parser.add_argument("--dpi", type=int, default=300, help="DPI for saved figures (default: 300)")
     parser.add_argument("--summary-csv", dest="summary_csv", default=None, help="Optional path to write comparison summary CSV")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--no-annotations", action="store_true", help="Disable improvement arrow annotations on figures")
     parser.add_argument("--only", help="Comma-separated condition keys to include (e.g., '0ms_3pct,75ms_3pct')")
     args = parser.parse_args()
 
@@ -400,7 +402,7 @@ def main():
     only = None
     if args.only:
         only = [c.strip() for c in args.only.split(',') if c.strip()]
-    generate_graphs(benchmark_dir, debug=args.debug, dpi=args.dpi, only_conditions=only)
+    generate_graphs(benchmark_dir, debug=args.debug, dpi=args.dpi, only_conditions=only, annotate=(not args.no_annotations))
 
     print("Report and graph generation completed!")
 
