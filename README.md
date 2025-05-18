@@ -103,6 +103,7 @@ python3 scripts/simple_graph_generator.py <log_directory> \
 - **エラーバーなし**: クリーンなグラフ表示
 - **出力形式**: PNG（高解像度300dpi）
  - **オプション**: `--only` で条件キーを絞り込み、`--summary-csv` で比較サマリーCSVを出力
+ - **表示制御**: `--no-annotations` でグラフ上の改善率注釈（矢印）を抑制
 
 注: 旧 `compute_percentiles.py` はサマリー出力へ統合済みです。
 
