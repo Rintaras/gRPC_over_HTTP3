@@ -95,16 +95,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Skip if secrets not set
-        if: ${{ !(secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_KEY != '') }}
-        run: echo "Secrets not set. Skipping SSH deploy."
+      - name: Determine deploy condition
+        id: guard
+        run: |
+          if [ -n "${DEPLOY_HOST}" ] && [ -n "${DEPLOY_USER}" ] && [ -n "${DEPLOY_KEY}" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "SSH deploy will run"
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "Secrets not set. Skipping SSH deploy."
+          fi
 
       - name: Install ssh client
-        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_KEY != '' }}
+        if: ${{ steps.guard.outputs.should_run == 'true' }}
         run: sudo apt-get update && sudo apt-get install -y openssh-client
 
       - name: Add SSH key
-        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_KEY != '' }}
+        if: ${{ steps.guard.outputs.should_run == 'true' }}
         run: |
           mkdir -p ~/.ssh
           echo "${DEPLOY_KEY}" > ~/.ssh/id_ed25519
@@ -112,7 +119,7 @@ jobs:
           printf "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
       - name: Deploy with docker compose
-        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_KEY != '' }}
+        if: ${{ steps.guard.outputs.should_run == 'true' }}
         run: |
           ssh -i ~/.ssh/id_ed25519 ${DEPLOY_USER}@${DEPLOY_HOST} "docker login ghcr.io -u $GITHUB_ACTOR -p $GITHUB_TOKEN && cd ~/gRPC_over_HTTP3 && docker compose pull && docker compose up -d --remove-orphans"
 
