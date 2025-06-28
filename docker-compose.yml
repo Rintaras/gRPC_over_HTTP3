@@ -1,0 +1,50 @@
+services:
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: grpc-client
+    networks:
+      benchnet:
+        ipv4_address: 172.30.0.3
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./logs:/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    tty: true
+    stdin_open: true
+    depends_on:
+      - router
+      - server
+    command: sleep infinity
+
+  router:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: grpc-router
+    networks:
+      benchnet:
+        ipv4_address: 172.30.0.254
+    cap_add:
+      - NET_ADMIN
+    command: sleep infinity
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: grpc-server
+    networks:
+      benchnet:
+        ipv4_address: 172.30.0.2
+    ports:
+      - "80:80"   # HTTP/2
+      - "443:443" # HTTPS/HTTP/3
+
+networks:
+  benchnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24 

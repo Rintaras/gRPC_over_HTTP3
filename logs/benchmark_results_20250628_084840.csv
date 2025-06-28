@@ -1,0 +1,1 @@
+protocol,file,timestamp,network_delay,network_loss,total_requests,successful_requests,failed_requests,timeout_requests,success_rate,requests_per_sec,transfer_per_sec,min_latency,max_latency,mean_latency,latency_std,connect_time_mean,first_byte_time_mean

@@ -1,0 +1,41 @@
+=== HTTP/2 BENCHMARK RESULTS ===
+=== NETWORK CONDITIONS ===
+Timestamp: 2025-06-28 08:46:42
+Delay: 0ms
+Loss: 0%
+Router IP: 172.30.0.254
+Server IP: 172.30.0.2
+Current qdisc configuration:
+qdisc noqueue 0: root refcnt 2 
+
+starting benchmark...
+spawning thread #0: 5 total client(s). 500 total requests
+spawning thread #1: 5 total client(s). 500 total requests
+TLS Protocol: TLSv1.3
+Cipher: TLS_AES_128_GCM_SHA256
+Server Temp Key: X25519 253 bits
+Application protocol: h2
+progress: 10% done
+progress: 20% done
+progress: 30% done
+progress: 40% done
+progress: 50% done
+progress: 60% done
+progress: 70% done
+progress: 80% done
+progress: 90% done
+progress: 100% done
+
+finished in 17.28ms, 57856.98 req/s, 8.63MB/s
+requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 152.82KB (156490) total, 98.63KB (101000) headers (space savings 37.27%), 36.13KB (37000) data
+                     min         max         mean         sd        +/- sd
+time for request:       44us      7.72ms       988us      1.22ms    92.00%
+time for connect:     1.91ms      9.90ms      6.19ms      2.49ms    70.00%
+time to 1st byte:     9.65ms     11.14ms     10.33ms       498us    60.00%
+req/s           :    5819.08     6185.92     6041.60      106.57    70.00%
+
+=== BENCHMARK SUMMARY ===
+Protocol: HTTP/2
+End Time: 2025-06-28 08:46:42
