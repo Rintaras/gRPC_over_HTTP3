@@ -1,6 +1,6 @@
 === HTTP/2 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-06-28 09:08:18
+Timestamp: 2025-06-28 14:23:49
 Delay: 0ms
 Loss: 0%
 Router IP: 172.30.0.254
@@ -8,9 +8,18 @@ Server IP: 172.30.0.2
 Current qdisc configuration:
 qdisc noqueue 0: root refcnt 2 
 
+-t: warning: the number of threads is greater than hardware cores.
 starting benchmark...
-spawning thread #0: 5 total client(s). 500 total requests
-spawning thread #1: 5 total client(s). 500 total requests
+spawning thread #0: 5 total client(s). 100 total requests
+spawning thread #1: 5 total client(s). 100 total requests
+spawning thread #2: 5 total client(s). 100 total requests
+spawning thread #3: 5 total client(s). 100 total requests
+spawning thread #4: 5 total client(s). 100 total requests
+spawning thread #5: 5 total client(s). 100 total requests
+spawning thread #6: 5 total client(s). 100 total requests
+spawning thread #7: 5 total client(s). 100 total requests
+spawning thread #8: 5 total client(s). 100 total requests
+spawning thread #9: 5 total client(s). 100 total requests
 TLS Protocol: TLSv1.3
 Cipher: TLS_AES_128_GCM_SHA256
 Server Temp Key: X25519 253 bits
@@ -26,16 +35,16 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 19.52ms, 51237.38 req/s, 7.65MB/s
+finished in 53.77ms, 18598.08 req/s, 3.04MB/s
 requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 152.82KB (156490) total, 98.63KB (101000) headers (space savings 37.27%), 36.13KB (37000) data
+traffic: 167.34KB (171359) total, 98.63KB (101000) headers (space savings 37.27%), 36.13KB (37000) data
                      min         max         mean         sd        +/- sd
-time for request:      449us      9.55ms      1.14ms      1.73ms    92.00%
-time for connect:     2.80ms     12.40ms      7.30ms      3.42ms    70.00%
-time to 1st byte:    12.19ms     13.63ms     12.88ms       500us    60.00%
-req/s           :    5159.75     5368.82     5283.99       68.94    60.00%
+time for request:       66us     22.73ms     10.11ms      7.91ms    43.70%
+time for connect:     2.26ms     51.37ms     24.65ms     16.12ms    56.00%
+time to 1st byte:    24.54ms     51.52ms     34.70ms      8.50ms    66.00%
+req/s           :     386.69      805.74      603.82      132.40    58.00%
 
 === BENCHMARK SUMMARY ===
 Protocol: HTTP/2
-End Time: 2025-06-28 09:08:18
+End Time: 2025-06-28 14:23:49

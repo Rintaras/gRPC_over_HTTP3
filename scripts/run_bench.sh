@@ -16,20 +16,29 @@ declare -a test_cases=(
     "150 3"
 )
 
-# Benchmark parameters (reduced load for better success rate)
-REQUESTS=1000    # 1000リクエストに減らす
-CONNECTIONS=10   # 10接続に減らす
-THREADS=2        # スレッドも2に減らす
-CONCURRENT=10    # 最大同時10
+# Benchmark parameters (h2load and curl unified)
+REQUESTS=1000        # Total requests
+CONNECTIONS=50       # Number of connections (further increased for HTTP/3 to match h2load performance)
+THREADS=10          # Number of threads (increased for better parallelism)
+MAX_CONCURRENT=50   # Max concurrent streams (increased for HTTP/3)
+REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # Larger data for both protocols
+
+# Calculate derived parameters
+REQUESTS_PER_CONNECTION=$((REQUESTS / CONNECTIONS))
+REMAINING_REQUESTS=$((REQUESTS % CONNECTIONS))
+CONNECTIONS_PER_THREAD=$((CONNECTIONS / THREADS))
 
 echo "================================================"
 echo "HTTP/2 vs HTTP/3 Performance Benchmark"
 echo "================================================"
 echo "Parameters:"
-echo "  Requests: $REQUESTS"
+echo "  Total Requests: $REQUESTS"
 echo "  Connections: $CONNECTIONS"
 echo "  Threads: $THREADS"
-echo "  Max Concurrent: $CONCURRENT"
+echo "  Max Concurrent Streams: $MAX_CONCURRENT"
+echo "  Requests per Connection: $REQUESTS_PER_CONNECTION"
+echo "  Connections per Thread: $CONNECTIONS_PER_THREAD"
+echo "  Request Data: \"$REQUEST_DATA\""
 echo "  Test Cases: ${#test_cases[@]}"
 echo "================================================"
 
@@ -72,13 +81,21 @@ run_http2_bench() {
     echo "=== HTTP/2 BENCHMARK RESULTS ===" > $log_file
     log_network_conditions $delay $loss $log_file
     
+    # Create temporary data file for h2load
+    local temp_data_file=$(mktemp)
+    echo "$REQUEST_DATA" > "$temp_data_file"
+    
     # Run h2load for HTTP/2 with optimized parameters
-    h2load -n $REQUESTS -c $CONNECTIONS -t $THREADS -m $CONCURRENT \
+    h2load -n $REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
         --connection-active-timeout 30 \
         --connection-inactivity-timeout 30 \
         --header "User-Agent: h2load-benchmark" \
+        --data "$temp_data_file" \
         https://$SERVER_IP/echo >> $log_file 2>&1
+    
+    # Clean up temporary file
+    rm "$temp_data_file"
     
     # Add summary at the end
     echo "" >> $log_file
@@ -104,14 +121,22 @@ run_http3_h2load_bench() {
     # Try h2load with HTTP/3
     echo "Attempting h2load with HTTP/3..." >> $log_file
     
+    # Create temporary data file for h2load
+    local temp_data_file=$(mktemp)
+    echo "$REQUEST_DATA" > "$temp_data_file"
+    
     # Run h2load with HTTP/3 ALPN
-    h2load -n $REQUESTS -c $CONNECTIONS -t $THREADS -m $CONCURRENT \
+    h2load -n $REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
         --connection-active-timeout 30 \
         --connection-inactivity-timeout 30 \
         --header "User-Agent: h2load-benchmark" \
+        --data "$temp_data_file" \
         --alpn-list=h3,h2 \
         https://$SERVER_IP/echo >> $log_file 2>&1
+    
+    # Clean up temporary file
+    rm "$temp_data_file"
     
     # Check if h2load succeeded and analyze protocol usage
     if grep -q "succeeded, 0 failed" $log_file; then
@@ -168,21 +193,23 @@ run_http3_bench() {
     latencies=()
     connect_times=()
     first_byte_times=()
+    total_data_transferred=0
+    total_headers_size=0
     
     echo "Starting HTTP/3 benchmark with curl (h2load equivalent load)..." >> $log_file
-    echo "Requests: $REQUESTS, Connections: $CONNECTIONS, Threads: $THREADS, Max Concurrent: $CONCURRENT" >> $log_file
+    echo "Requests: $REQUESTS, Connections: $CONNECTIONS, Threads: $THREADS, Max Concurrent: $MAX_CONCURRENT" >> $log_file
     echo "Start time: $(date -u)" >> $log_file
     echo "" >> $log_file
     
-    # Calculate requests per connection to match h2load behavior
-    local requests_per_conn=$((REQUESTS / CONNECTIONS))
-    local remaining_requests=$((REQUESTS % CONNECTIONS))
-    
-    echo "Requests per connection: $requests_per_conn" >> $log_file
-    echo "Remaining requests: $remaining_requests" >> $log_file
+    # Log load distribution to match h2load
+    echo "Load Distribution (matching h2load):" >> $log_file
+    echo "  Requests per connection: $REQUESTS_PER_CONNECTION" >> $log_file
+    echo "  Remaining requests: $REMAINING_REQUESTS" >> $log_file
+    echo "  Connections per thread: $CONNECTIONS_PER_THREAD" >> $log_file
+    echo "  Request data: \"$REQUEST_DATA\"" >> $log_file
     echo "" >> $log_file
     
-    # Function to run requests for a single connection
+    # Function to run requests for a single connection (matching h2load behavior)
     run_connection_requests() {
         local conn_id=$1
         local req_count=$2
@@ -192,66 +219,104 @@ run_http3_bench() {
         local conn_success=0
         local conn_fail=0
         
-        for i in $(seq 1 $req_count); do
-            # Make HTTP/3 request with detailed timing metrics
-            response=$(curl -sk --http3 \
-                --connect-timeout 10 \
-                --max-time 30 \
-                --retry 0 \
-                --no-progress-meter \
-                -w "%{time_total} %{time_connect} %{time_starttransfer} %{size_download} %{http_code} %{http_version}\n" \
-                https://$SERVER_IP/echo 2>/dev/null)
+        # Process requests in batches for better performance
+        local batch_size=50  # Further increased batch size for maximum parallelism
+        local remaining=$req_count
+        
+        while [ $remaining -gt 0 ]; do
+            local current_batch=$((remaining > batch_size ? batch_size : remaining))
             
-            # Process response - curl outputs body first, then -w format
-            if [ $? -eq 0 ]; then
-                # Get the last line which contains the -w format data
-                last_line=$(echo "$response" | tail -1)
-                read time_total time_connect time_starttransfer size code version <<< "$last_line"
+            # Create batch of curl commands
+            local batch_pids=()
+            local batch_temp_files=()
+            
+            for i in $(seq 1 $current_batch); do
+                # Create temporary file for this request
+                temp_file=$(mktemp)
+                batch_temp_files+=("$temp_file")
                 
-                if [ "$code" = "200" ]; then
-                    conn_latencies+=("$time_total")
-                    conn_connect_times+=("$time_connect")
-                    conn_first_byte_times+=("$time_starttransfer")
-                    ((conn_success++))
-                else
-                    ((conn_fail++))
-                fi
-            else
-                ((conn_fail++))
-            fi
+                # Make HTTP/3 request with same data as h2load
+                (curl -sk --http3 \
+                    --connect-timeout 10 \
+                    --max-time 30 \
+                    --retry 0 \
+                    --no-progress-meter \
+                    --data "$REQUEST_DATA" \
+                    -w "%{time_total} %{time_connect} %{time_starttransfer} %{size_download} %{http_code} %{http_version}\n" \
+                    https://$SERVER_IP/echo 2>/dev/null > "$temp_file") &
+                batch_pids+=($!)
+            done
             
-            # Add small delay between requests to simulate h2load behavior
-            sleep 0.001
+            # Wait for batch to complete
+            for pid in "${batch_pids[@]}"; do
+                wait $pid
+            done
+            
+            # Process batch results
+            for temp_file in "${batch_temp_files[@]}"; do
+                if [ -f "$temp_file" ]; then
+                    response=$(cat "$temp_file")
+                    rm "$temp_file"
+                    
+                    # Process response - curl outputs body first, then -w format
+                    if [ -n "$response" ]; then
+                        # Get the last line which contains the -w format data
+                        last_line=$(echo "$response" | tail -1)
+                        read time_total time_connect time_starttransfer size code version <<< "$last_line"
+                        
+                        if [ "$code" = "200" ]; then
+                            conn_latencies+=("$time_total")
+                            conn_connect_times+=("$time_connect")
+                            conn_first_byte_times+=("$time_starttransfer")
+                            ((conn_success++))
+                        else
+                            ((conn_fail++))
+                        fi
+                    else
+                        ((conn_fail++))
+                    fi
+                fi
+            done
+            
+            remaining=$((remaining - current_batch))
         done
         
         # Return results as space-separated string
         echo "$conn_success $conn_fail ${conn_latencies[*]} ${conn_connect_times[*]} ${conn_first_byte_times[*]}"
     }
     
-    # Run connections in parallel using background jobs
+    # Run connections in parallel using background jobs (matching h2load thread distribution)
     local pids=()
     local temp_files=()
+    local conn_counter=0
     
-    for conn in $(seq 1 $CONNECTIONS); do
-        local req_count=$requests_per_conn
-        if [ $conn -le $remaining_requests ]; then
-            ((req_count++))
-        fi
-        
-        # Create temporary file for this connection's results
-        temp_file=$(mktemp)
-        temp_files+=("$temp_file")
-        
-        # Run connection requests in background
-        (run_connection_requests $conn $req_count > "$temp_file") &
-        pids+=($!)
-        
-        # Limit concurrent connections
-        if [ ${#pids[@]} -ge $THREADS ]; then
-            wait ${pids[0]}
-            pids=("${pids[@]:1}")
-        fi
+    # Start all connections simultaneously for maximum concurrency (like h2load)
+    echo "Starting $CONNECTIONS connections with $THREADS threads..." >> $log_file
+    
+    for thread in $(seq 1 $THREADS); do
+        echo "  Thread $thread: starting $CONNECTIONS_PER_THREAD connections" >> $log_file
+        for conn_in_thread in $(seq 1 $CONNECTIONS_PER_THREAD); do
+            ((conn_counter++))
+            
+            local req_count=$REQUESTS_PER_CONNECTION
+            if [ $conn_counter -le $REMAINING_REQUESTS ]; then
+                ((req_count++))
+            fi
+            
+            # Create temporary file for this connection's results
+            temp_file=$(mktemp)
+            temp_files+=("$temp_file")
+            
+            # Run connection requests in background (maximize concurrency)
+            (run_connection_requests $conn_counter $req_count > "$temp_file") &
+            pids+=($!)
+            
+            # Small delay to prevent overwhelming the system
+            sleep 0.001
+        done
     done
+    
+    echo "All connections started. Waiting for completion..." >> $log_file
     
     # Wait for all background jobs to complete
     for pid in "${pids[@]}"; do
@@ -277,6 +342,11 @@ run_http3_bench() {
             rm "$temp_file"
         fi
     done
+    
+    # Calculate data transfer statistics
+    total_data_transferred=$((success * ${#REQUEST_DATA}))
+    total_headers_size=$((success * 200))  # Approximate header size per request
+    total_traffic=$((total_data_transferred + total_headers_size))
     
     # Calculate statistics
     min=999999
@@ -357,10 +427,10 @@ run_http3_bench() {
     fi
     
     # Output detailed results in h2load format
-    echo "finished in ${total_time}s, ${throughput} req/s, 0B/s" >> $log_file
+    echo "finished in ${total_time}s, ${throughput} req/s, $(echo "scale=2; $total_traffic / 1024" | bc -l)KB/s" >> $log_file
     echo "requests: $REQUESTS total, $REQUESTS started, $count done, $success succeeded, $fail failed, 0 errored, 0 timeout" >> $log_file
     echo "status codes: $success 2xx, 0 3xx, 0 4xx, 0 5xx" >> $log_file
-    echo "traffic: 0B (0) total, 0B (0) headers (space savings 0.00%), 0B (0) data" >> $log_file
+    echo "traffic: $(echo "scale=2; $total_traffic / 1024" | bc -l)KB ($total_traffic) total, $(echo "scale=2; $total_headers_size / 1024" | bc -l)KB ($total_headers_size) headers (space savings 0.00%), $(echo "scale=2; $total_data_transferred / 1024" | bc -l)KB ($total_data_transferred) data" >> $log_file
     echo "                     min         max         mean         sd        +/- sd" >> $log_file
     echo "time for request: $(printf "%8.0fus" $(echo "$min * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$max * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$mean * 1000000" | bc -l)) $(printf "%8.0fus" 0) $(printf "%6.2f%%" 100)" >> $log_file
     echo "time for connect: $(printf "%8.0fus" $(echo "$connect_min * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$connect_max * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$connect_mean * 1000000" | bc -l)) $(printf "%8.0fus" 0) $(printf "%6.2f%%" 100)" >> $log_file

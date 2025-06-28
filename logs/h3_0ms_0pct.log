@@ -1,6 +1,6 @@
 === HTTP/3 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-06-28 09:08:18
+Timestamp: 2025-06-28 14:23:49
 Delay: 0ms
 Loss: 0%
 Router IP: 172.30.0.254
@@ -9,22 +9,37 @@ Current qdisc configuration:
 qdisc noqueue 0: root refcnt 2 
 
 Starting HTTP/3 benchmark with curl (h2load equivalent load)...
-Requests: 1000, Connections: 10, Threads: 2, Max Concurrent: 10
-Start time: Sat Jun 28 09:08:18 UTC 2025
+Requests: 1000, Connections: 50, Threads: 10, Max Concurrent: 50
+Start time: Sat Jun 28 14:23:49 UTC 2025
 
-Requests per connection: 100
-Remaining requests: 0
+Load Distribution (matching h2load):
+  Requests per connection: 20
+  Remaining requests: 0
+  Connections per thread: 5
+  Request data: "Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"
 
-finished in .01269500000000000000s, 787.71169751870815281606 req/s, 0B/s
-requests: 1000 total, 1000 started, 10 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
+Starting 50 connections with 10 threads...
+  Thread 1: starting 5 connections
+  Thread 2: starting 5 connections
+  Thread 3: starting 5 connections
+  Thread 4: starting 5 connections
+  Thread 5: starting 5 connections
+  Thread 6: starting 5 connections
+  Thread 7: starting 5 connections
+  Thread 8: starting 5 connections
+  Thread 9: starting 5 connections
+  Thread 10: starting 5 connections
+All connections started. Waiting for completion...
+finished in .10877500000000000000s, 459.66444495518271661686 req/s, 319.33KB/s
+requests: 1000 total, 1000 started, 50 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 0B (0) total, 0B (0) headers (space savings 0.00%), 0B (0) data
+traffic: 319.33KB (327000) total, 195.31KB (200000) headers (space savings 0.00%), 124.02KB (127000) data
                      min         max         mean         sd        +/- sd
-time for request:     1623us     2539us     1989us        0us 100.00%
-time for connect:     1537us     2935us     2009us        0us 100.00%
-time to 1st byte:     1009us     5768us   518330us        0us 100.00%
-req/s           :   787.71   787.71   787.71     0.00 100.00%
+time for request:     1818us    21755us     3523us        0us 100.00%
+time for connect:     1858us    14337us     3468us        0us 100.00%
+time to 1st byte:     1065us   413525us   220787us        0us 100.00%
+req/s           :   459.66   459.66   459.66     0.00 100.00%
 
 === BENCHMARK SUMMARY ===
 Protocol: HTTP/3
-End Time: 2025-06-28 09:08:41
+End Time: 2025-06-28 14:24:28

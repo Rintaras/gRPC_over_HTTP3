@@ -1,0 +1,9 @@
+network_condition,protocol,success_rate,requests_per_sec,mean_latency,latency_std,connect_time_mean,first_byte_time_mean
+0ms_0pct,HTTP/3,100.0,1263.5835228708618,0,0,0,0
+0ms_0pct,HTTP/2,100.0,17173.57,0,0,0,0
+50ms_0pct,HTTP/3,100.0,353.1572255968357,0,0,0,0
+50ms_0pct,HTTP/2,100.0,18680.76,0,0,0,0
+100ms_1pct,HTTP/2,100.0,17794.86,0,0,0,0
+100ms_1pct,HTTP/3,100.0,594.1770647653001,0,0,0,0
+150ms_3pct,HTTP/2,100.0,19067.59,0,0,0,0
+150ms_3pct,HTTP/3,100.0,615.8014656074881,0,0,0,0
