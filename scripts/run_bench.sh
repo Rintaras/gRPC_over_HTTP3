@@ -166,6 +166,8 @@ run_http3_bench() {
     success=0
     fail=0
     latencies=()
+    connect_times=()
+    first_byte_times=()
     
     echo "Starting HTTP/3 benchmark with curl (h2load equivalent load)..." >> $log_file
     echo "Requests: $REQUESTS, Connections: $CONNECTIONS, Threads: $THREADS, Max Concurrent: $CONCURRENT" >> $log_file
@@ -185,27 +187,31 @@ run_http3_bench() {
         local conn_id=$1
         local req_count=$2
         local conn_latencies=()
+        local conn_connect_times=()
+        local conn_first_byte_times=()
         local conn_success=0
         local conn_fail=0
         
         for i in $(seq 1 $req_count); do
-            # Make HTTP/3 request
+            # Make HTTP/3 request with detailed timing metrics
             response=$(curl -sk --http3 \
                 --connect-timeout 10 \
                 --max-time 30 \
                 --retry 0 \
                 --no-progress-meter \
-                -w "%{time_total} %{size_download} %{http_code} %{http_version}\n" \
+                -w "%{time_total} %{time_connect} %{time_starttransfer} %{size_download} %{http_code} %{http_version}\n" \
                 https://$SERVER_IP/echo 2>/dev/null)
             
             # Process response - curl outputs body first, then -w format
             if [ $? -eq 0 ]; then
                 # Get the last line which contains the -w format data
                 last_line=$(echo "$response" | tail -1)
-                read time size code version <<< "$last_line"
+                read time_total time_connect time_starttransfer size code version <<< "$last_line"
                 
                 if [ "$code" = "200" ]; then
-                    conn_latencies+=("$time")
+                    conn_latencies+=("$time_total")
+                    conn_connect_times+=("$time_connect")
+                    conn_first_byte_times+=("$time_starttransfer")
                     ((conn_success++))
                 else
                     ((conn_fail++))
@@ -219,7 +225,7 @@ run_http3_bench() {
         done
         
         # Return results as space-separated string
-        echo "$conn_success $conn_fail ${conn_latencies[*]}"
+        echo "$conn_success $conn_fail ${conn_latencies[*]} ${conn_connect_times[*]} ${conn_first_byte_times[*]}"
     }
     
     # Run connections in parallel using background jobs
@@ -255,10 +261,19 @@ run_http3_bench() {
     # Collect results from all connections
     for temp_file in "${temp_files[@]}"; do
         if [ -f "$temp_file" ]; then
-            read conn_success conn_fail conn_latencies < "$temp_file"
+            read conn_success conn_fail conn_latencies conn_connect_times conn_first_byte_times < "$temp_file"
             ((success += conn_success))
             ((fail += conn_fail))
-            latencies+=($conn_latencies)
+            # Add individual values to arrays
+            for l in $conn_latencies; do
+                latencies+=("$l")
+            done
+            for c in $conn_connect_times; do
+                connect_times+=("$c")
+            done
+            for f in $conn_first_byte_times; do
+                first_byte_times+=("$f")
+            done
             rm "$temp_file"
         fi
     done
@@ -268,6 +283,16 @@ run_http3_bench() {
     max=0
     sum=0
     count=0
+    
+    # Calculate connect time statistics
+    connect_min=999999
+    connect_max=0
+    connect_sum=0
+    
+    # Calculate first byte time statistics
+    first_byte_min=999999
+    first_byte_max=0
+    first_byte_sum=0
     
     for l in "${latencies[@]}"; do
         if (( $(echo "$l < $min" | bc -l) )); then
@@ -280,12 +305,42 @@ run_http3_bench() {
         ((count++))
     done
     
+    # Calculate connect time statistics
+    for c in "${connect_times[@]}"; do
+        if (( $(echo "$c < $connect_min" | bc -l) )); then
+            connect_min=$c
+        fi
+        if (( $(echo "$c > $connect_max" | bc -l) )); then
+            connect_max=$c
+        fi
+        connect_sum=$(echo "$connect_sum + $c" | bc -l)
+    done
+    
+    # Calculate first byte time statistics
+    for f in "${first_byte_times[@]}"; do
+        if (( $(echo "$f < $first_byte_min" | bc -l) )); then
+            first_byte_min=$f
+        fi
+        if (( $(echo "$f > $first_byte_max" | bc -l) )); then
+            first_byte_max=$f
+        fi
+        first_byte_sum=$(echo "$first_byte_sum + $f" | bc -l)
+    done
+    
     if [ $count -gt 0 ]; then
         mean=$(echo "$sum / $count" | bc -l)
+        connect_mean=$(echo "$connect_sum / $count" | bc -l)
+        first_byte_mean=$(echo "$first_byte_sum / $count" | bc -l)
     else
         mean=0
         min=0
         max=0
+        connect_mean=0
+        connect_min=0
+        connect_max=0
+        first_byte_mean=0
+        first_byte_min=0
+        first_byte_max=0
     fi
     
     # Calculate throughput
@@ -308,8 +363,8 @@ run_http3_bench() {
     echo "traffic: 0B (0) total, 0B (0) headers (space savings 0.00%), 0B (0) data" >> $log_file
     echo "                     min         max         mean         sd        +/- sd" >> $log_file
     echo "time for request: $(printf "%8.0fus" $(echo "$min * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$max * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$mean * 1000000" | bc -l)) $(printf "%8.0fus" 0) $(printf "%6.2f%%" 100)" >> $log_file
-    echo "time for connect: $(printf "%8.0fus" 0) $(printf "%8.0fus" 0) $(printf "%8.0fus" 0) $(printf "%8.0fus" 0) $(printf "%6.2f%%" 100)" >> $log_file
-    echo "time to 1st byte: $(printf "%8.0fus" 0) $(printf "%8.0fus" 0) $(printf "%8.0fus" 0) $(printf "%8.0fus" 0) $(printf "%6.2f%%" 100)" >> $log_file
+    echo "time for connect: $(printf "%8.0fus" $(echo "$connect_min * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$connect_max * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$connect_mean * 1000000" | bc -l)) $(printf "%8.0fus" 0) $(printf "%6.2f%%" 100)" >> $log_file
+    echo "time to 1st byte: $(printf "%8.0fus" $(echo "$first_byte_min * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$first_byte_max * 1000000" | bc -l)) $(printf "%8.0fus" $(echo "$first_byte_mean * 1000000" | bc -l)) $(printf "%8.0fus" 0) $(printf "%6.2f%%" 100)" >> $log_file
     echo "req/s           : $(printf "%8.2f" $throughput) $(printf "%8.2f" $throughput) $(printf "%8.2f" $throughput) $(printf "%8.2f" 0) $(printf "%6.2f%%" 100)" >> $log_file
     
     # Add summary at the end

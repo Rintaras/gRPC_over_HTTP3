@@ -1,30 +1,30 @@
 === HTTP/3 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-06-28 08:47:16
+Timestamp: 2025-06-28 09:09:15
 Delay: 100ms
 Loss: 1%
 Router IP: 172.30.0.254
 Server IP: 172.30.0.2
 Current qdisc configuration:
-qdisc netem 804e: root refcnt 9 limit 1000 delay 100ms loss 1%
+qdisc netem 8057: root refcnt 9 limit 1000 delay 100ms loss 1%
 
 Starting HTTP/3 benchmark with curl (h2load equivalent load)...
 Requests: 1000, Connections: 10, Threads: 2, Max Concurrent: 10
-Start time: Sat Jun 28 08:47:16 UTC 2025
+Start time: Sat Jun 28 09:09:15 UTC 2025
 
 Requests per connection: 100
 Remaining requests: 0
 
-finished in .01616000000000000000s, 61881.18811881188118811881 req/s, 0B/s
-requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
+finished in .01162000000000000000s, 860.58519793459552495697 req/s, 0B/s
+requests: 1000 total, 1000 started, 10 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
 traffic: 0B (0) total, 0B (0) headers (space savings 0.00%), 0B (0) data
                      min         max         mean         sd        +/- sd
-time for request:     1475us     3232us     2128us        0us 100.00%
-time for connect:        0us        0us        0us        0us 100.00%
-time to 1st byte:        0us        0us        0us        0us 100.00%
-req/s           : 61881.19 61881.19 61881.19     0.00 100.00%
+time for request:     1614us     2324us     1984us        0us 100.00%
+time for connect:     1493us     2750us     2049us        0us 100.00%
+time to 1st byte:     1005us    54796us   536161us        0us 100.00%
+req/s           :   860.59   860.59   860.59     0.00 100.00%
 
 === BENCHMARK SUMMARY ===
 Protocol: HTTP/3
-End Time: 2025-06-28 08:47:28
+End Time: 2025-06-28 09:09:39
