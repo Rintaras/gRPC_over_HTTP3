@@ -30,3 +30,16 @@ Starting 50 connections with 10 threads...
   Thread 9: starting 5 connections
   Thread 10: starting 5 connections
 All connections started. Waiting for completion...
+finished in .04423500000000000000s, 1130.32666440601333785463 req/s, 319.33KB/s
+requests: 1000 total, 1000 started, 50 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 319.33KB (327000) total, 195.31KB (200000) headers (space savings 0.00%), 124.02KB (127000) data
+                     min         max         mean         sd        +/- sd
+time for request:     1798us     8847us     3572us        0us 100.00%
+time for connect:     1698us    54261us     4476us        0us 100.00%
+time to 1st byte:     1040us    62283us   166914us        0us 100.00%
+req/s           :  1130.33  1130.33  1130.33     0.00 100.00%
+
+=== BENCHMARK SUMMARY ===
+Protocol: HTTP/3
+End Time: 2025-06-28 14:25:09
