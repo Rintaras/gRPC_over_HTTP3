@@ -17,11 +17,13 @@ declare -a test_cases=(
 )
 
 # Benchmark parameters (h2load and curl unified)
-REQUESTS=1000        # Total requests
-CONNECTIONS=50       # Number of connections (further increased for HTTP/3 to match h2load performance)
-THREADS=10          # Number of threads (increased for better parallelism)
-MAX_CONCURRENT=50   # Max concurrent streams (increased for HTTP/3)
-REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # Larger data for both protocols
+REQUESTS=1000        # 総リクエスト数
+CONNECTIONS=50       # 同時接続数
+THREADS=10          # 並列スレッド数
+MAX_CONCURRENT=50   # 最大同時ストリーム数
+REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 
+performance comparison test with realistic data payload for 
+accurate measurement"  # サイズ: 約150バイト
 
 # Calculate derived parameters
 REQUESTS_PER_CONNECTION=$((REQUESTS / CONNECTIONS))
