@@ -10,10 +10,10 @@ LOG_DIR="/logs"
 
 # Test cases: (delay_ms, loss_percent)
 declare -a test_cases=(
-    "0 0"
-    "50 0"
-    "100 1"
-    "150 3"
+    "0 0"    # 理想環境: 0ms遅延、0%損失
+    "50 0"   # 中程度遅延: 50ms遅延、0%損失
+    "100 1"  # 高遅延低損失: 100ms遅延、1%損失
+    "150 3"  # 高遅延高損失: 150ms遅延、3%損失
 )
 
 # Benchmark parameters (h2load and curl unified)
