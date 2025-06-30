@@ -1,12 +1,12 @@
 === HTTP/2 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-06-30 19:15:33
+Timestamp: 2025-06-30 21:07:28
 Delay: 100ms
 Loss: 1%
 Router IP: 172.30.0.254
 Server IP: 172.30.0.2
 Current qdisc configuration:
-qdisc netem 8008: root refcnt 9 limit 1000 delay 100ms loss 1%
+qdisc netem 800e: root refcnt 9 limit 1000 delay 100ms loss 1%
 
 -t: warning: the number of threads is greater than hardware cores.
 starting benchmark...
@@ -35,16 +35,16 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 56.74ms, 17624.25 req/s, 2.88MB/s
+finished in 47.78ms, 20928.82 req/s, 3.42MB/s
 requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 167.30KB (171320) total, 98.63KB (101000) headers (space savings 37.27%), 36.13KB (37000) data
+traffic: 167.37KB (171385) total, 98.63KB (101000) headers (space savings 37.27%), 36.13KB (37000) data
                      min         max         mean         sd        +/- sd
-time for request:       72us      2.35ms      1.24ms       407us    74.80%
-time for connect:     1.85ms     52.39ms     28.74ms     15.87ms    58.00%
-time to 1st byte:     3.08ms     52.54ms     29.91ms     15.69ms    56.00%
-req/s           :     378.86     5455.29     1103.89     1097.41    88.00%
+time for request:       46us     11.48ms      3.37ms      3.77ms    78.00%
+time for connect:     1.64ms     46.04ms     24.35ms     14.01ms    56.00%
+time to 1st byte:    12.26ms     46.16ms     27.69ms     10.90ms    54.00%
+req/s           :     431.48     1600.84      842.50      341.66    60.00%
 
 === BENCHMARK SUMMARY ===
 Protocol: HTTP/2
-End Time: 2025-06-30 19:15:33
+End Time: 2025-06-30 21:07:28

@@ -1,9 +1,0 @@
-protocol,file,timestamp,network_delay,network_loss,total_requests,successful_requests,failed_requests,timeout_requests,success_rate,total_time,requests_per_sec,transfer_per_sec,min_latency,max_latency,mean_latency,latency_std,connect_time_mean,first_byte_time_mean
-HTTP/2,h2_0ms_0pct.log,2025-06-28 08:46:42,0,0,1000,1000,0,0,100.0,0,57856.98,8.63,0,0,0,0,0,0
-HTTP/3,h3_0ms_0pct.log,2025-06-28 08:46:42,0,0,1000,1000,0,0,100.0,0,55141.990625861596,0,0,0,0,0,0,0
-HTTP/2,h2_50ms_0pct.log,2025-06-28 08:46:59,50,0,1000,1000,0,0,100.0,0,57110.22,8.52,0,0,0,0,0,0
-HTTP/3,h3_50ms_0pct.log,2025-06-28 08:46:59,50,0,1000,1000,0,0,100.0,0,53008.2162735224,0,0,0,0,0,0,0
-HTTP/2,h2_100ms_1pct.log,2025-06-28 08:47:16,100,1,1000,1000,0,0,100.0,0,64424.69,9.61,0,0,0,0,0,0
-HTTP/3,h3_100ms_1pct.log,2025-06-28 08:47:16,100,1,1000,1000,0,0,100.0,0,61881.18811881188,0,0,0,0,0,0,0
-HTTP/2,h2_150ms_3pct.log,2025-06-28 08:47:34,150,3,1000,1000,0,0,100.0,0,58892.82,8.79,0,0,0,0,0,0
-HTTP/3,h3_150ms_3pct.log,2025-06-28 08:47:34,150,3,1000,1000,0,0,100.0,0,7136.485280999108,0,0,0,0,0,0,0
