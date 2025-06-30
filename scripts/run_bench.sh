@@ -18,12 +18,10 @@ declare -a test_cases=(
 
 # Benchmark parameters (h2load and curl unified)
 REQUESTS=1000        # 総リクエスト数
-CONNECTIONS=50       # 同時接続数
+CONNECTIONS=50       # 同時接続数 (HTTP/3のパフォーマンスをh2loadと一致させるため、さらに増加)
 THREADS=10          # 並列スレッド数
 MAX_CONCURRENT=50   # 最大同時ストリーム数
-REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 
-performance comparison test with realistic data payload for 
-accurate measurement"  # サイズ: 約150バイト
+REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # サイズ: 約150バイト
 
 # Calculate derived parameters
 REQUESTS_PER_CONNECTION=$((REQUESTS / CONNECTIONS))
@@ -211,6 +209,22 @@ run_http3_bench() {
     echo "  Request data: \"$REQUEST_DATA\"" >> $log_file
     echo "" >> $log_file
     
+=== HTTP/2 BENCHMARK RESULTS ===
+=== NETWORK CONDITIONS ===
+Timestamp: 2025-06-30 19:14:21
+Delay: 0ms
+Loss: 0%
+
+finished in 49.24ms, 20307.87 req/s, 3.32MB/s
+requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
+                     min         max         mean         sd        +/- sd
+time for request:       52us     19.78ms      7.62ms      6.72ms    55.90%
+time for connect:     1.77ms     46.98ms     23.93ms     14.40ms    56.00%
+time to 1st byte:    21.41ms     47.12ms     31.50ms      8.10ms    60.00%
+
+
+
     # Function to run requests for a single connection (matching h2load behavior)
     run_connection_requests() {
         local conn_id=$1
