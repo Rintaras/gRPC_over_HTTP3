@@ -1,6 +1,6 @@
 === HTTP/2 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-06-30 21:06:19
+Timestamp: 2025-07-01 05:15:12
 Delay: 0ms
 Loss: 0%
 Router IP: 172.30.0.254
@@ -35,16 +35,16 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 50.22ms, 19912.39 req/s, 3.25MB/s
+finished in 50.89ms, 19649.84 req/s, 3.21MB/s
 requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 167.30KB (171320) total, 98.63KB (101000) headers (space savings 37.27%), 36.13KB (37000) data
+traffic: 167.34KB (171359) total, 98.63KB (101000) headers (space savings 37.27%), 36.13KB (37000) data
                      min         max         mean         sd        +/- sd
-time for request:       68us     21.88ms      8.97ms      7.51ms    36.90%
-time for connect:     1.84ms     48.94ms     24.29ms     14.89ms    56.00%
-time to 1st byte:    23.53ms     49.43ms     33.21ms      7.78ms    64.00%
-req/s           :     403.83      841.23      628.38      131.66    60.00%
+time for request:      192us     20.78ms      8.25ms      7.06ms    42.10%
+time for connect:     1.63ms     49.16ms     24.08ms     14.99ms    58.00%
+time to 1st byte:    22.20ms     49.35ms     32.26ms      8.39ms    68.00%
+req/s           :     403.16      890.00      653.69      151.58    60.00%
 
 === BENCHMARK SUMMARY ===
 Protocol: HTTP/2
-End Time: 2025-06-30 21:06:19
+End Time: 2025-07-01 05:15:12
