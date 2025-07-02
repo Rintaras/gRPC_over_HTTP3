@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y \
     wrk \
     python3 \
     python3-pip \
+    python3-numpy \
+    python3-pandas \
     docker.io \
     autoconf \
     automake \
@@ -61,11 +63,11 @@ RUN git clone --recursive https://github.com/ngtcp2/ngtcp2.git && \
     cd .. && \
     rm -rf ngtcp2
 
-# Build and install nghttp2 (includes h2load)
+# Build and install nghttp2 (includes h2load with HTTP/3 support)
 RUN git clone --recursive https://github.com/nghttp2/nghttp2.git && \
     cd nghttp2 && \
     autoreconf -i && \
-    ./configure --enable-app --enable-hpack-tools --with-libngtcp2 --with-libnghttp3 && \
+    ./configure --enable-app --enable-hpack-tools --enable-http3 --with-libngtcp2 --with-libnghttp3 && \
     make -j$(nproc) && \
     make install && \
     cd .. && \

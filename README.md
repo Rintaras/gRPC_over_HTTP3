@@ -1,151 +1,164 @@
-# gRPC over HTTP/3 Performance Benchmark
+# HTTP/2 vs HTTP/3 Performance Benchmark
 
-HTTP/2（TCP）とHTTP/3（QUIC）の性能比較研究プロジェクトです。Docker Composeを使用した3ノード構成で、様々なネットワーク条件下での性能を測定します。
+HTTP/2（TCP）とHTTP/3（QUIC）の性能比較研究プロジェクトです。3ノードのDocker Compose構成でネットワーク遅延・損失をエミュレートしながらベンチマークを実施します。
 
-## 構成
+## 🎯 プロジェクト概要
 
-### アーキテクチャ
+このプロジェクトは、異なるネットワーク条件下でのHTTP/2とHTTP/3の性能を公平に比較することを目的としています。
+
+### 主要特徴
+- **公平性を重視した比較**: 接続確立のオーバーヘッドを除外した純粋なリクエスト処理性能を測定
+- **多様なネットワーク条件**: 0ms〜150ms遅延、0%〜3%パケット損失をエミュレート
+- **包括的なメトリクス**: スループット、レイテンシ、統計値（p95、p99）を詳細分析
+- **自動化されたベンチマーク**: 一括実行と結果分析
+
+## 🏗️ アーキテクチャ
+
 ```
-Client (h2load + curl) ←→ Router (tc netem) ←→ Server (nginx + quiche)
+[Client] --(HTTP/2/3)--> [Router] --(HTTP/2/3)--> [Server]
+  172.30.0.3             172.30.0.254             172.30.0.2
 ```
 
 ### コンポーネント
-- **Client**: h2load（HTTP/2）、curl（HTTP/3）による負荷テスト
-- **Router**: tc netemによる遅延・損失エミュレーション
+- **Client**: curl（HTTP/3対応）、h2load（HTTP/2/3対応）、grpcurl
+- **Router**: tc netemで遅延・損失エミュレーション
 - **Server**: nginx + quiche（HTTP/2/3対応）
 
-## 技術スタック
+## 🚀 セットアップ
 
-### クライアント
-- **h2load**: nghttp2 1.67.0-DEV（HTTP/2負荷テスト）
-- **curl**: HTTP/3対応版（HTTP/3負荷テスト）
-- **GNU parallel**: 並列処理
-- **bc**: 数値計算
+### 前提条件
+- Docker & Docker Compose
+- Python 3.7+
+- ネットワーク管理権限（tc netem使用のため）
 
-### ルーター
-- **tc netem**: ネットワーク遅延・損失エミュレーション
-- **iptables**: パケット制御
-
-### サーバー
-- **nginx**: 1.25.3 + quiche（HTTP/2/3対応）
-- **quiche**: Cloudflare製QUIC実装
-- **OpenSSL**: TLS 1.3対応
-
-## ベンチマーク条件
-
-### ネットワーク条件
-| 遅延 | 損失 | 説明 |
-|------|------|------|
-| 0ms | 0% | 理想的な環境 |
-| 50ms | 0% | 中程度の遅延 |
-| 100ms | 1% | 高遅延 + 低損失 |
-| 150ms | 3% | 高遅延 + 高損失 |
-
-### 負荷パラメータ
-- **リクエスト数**: 1,000
-- **接続数**: 10
-- **スレッド数**: 2
-- **最大同時ストリーム**: 10
-
-## 使用方法
-
-### 1. 環境構築
+### インストール
 ```bash
-# コンテナビルド・起動
-docker-compose up -d
-
-# 動作確認
-docker exec grpc-client curl -sk --http3 https://172.30.0.2/echo
+git clone <repository>
+cd gRPC_over_HTTP3
+docker-compose up -d --build
 ```
 
-### 2. ベンチマーク実行
+## 📊 ベンチマーク実行
+
+### 基本実行
 ```bash
-# 全条件でベンチマーク実行
 docker exec grpc-client /scripts/run_bench.sh
 ```
 
-### 3. 結果分析
-```bash
-# CSVレポート生成
-docker exec grpc-client python3 /scripts/merge_results.py
-```
+### テストケース
+- **理想環境**: 0ms遅延、0%損失
+- **中程度遅延**: 50ms遅延、0%損失  
+- **高遅延低損失**: 100ms遅延、1%損失
+- **高遅延高損失**: 150ms遅延、3%損失
 
-## ベンチマーク手法
+### パラメータ
+- 総リクエスト数: 10,000
+- 同時接続数: 100
+- 並列スレッド数: 20
+- 最大同時ストリーム数: 100
 
-### HTTP/2
-- **ツール**: h2load
-- **プロトコル**: HTTP/2 over TLS 1.3
-- **負荷**: 多接続・多ストリーム並列処理
+## 📈 結果分析
 
-### HTTP/3
-- **ツール**: curl（h2loadがHTTP/3未対応のため）
-- **プロトコル**: HTTP/3 over QUIC
-- **負荷**: h2loadと同等の負荷条件を再現
+### 生成されるファイル
+- `logs/comparison_report.txt`: 包括的比較レポート
+- `logs/fair_comparison_report.txt`: 公平性を考慮した詳細分析
+- `logs/comparison_data.csv`: 全データのCSV形式
+- `logs/fair_comparison_data.csv`: 公平性分析データ
 
-### 負荷条件の統一
-両プロトコルで同じ負荷条件を適用：
-- 接続数、スレッド数、同時ストリーム数を統一
-- 並列処理パターンを類似化
-- ネットワーク条件を同一に設定
+### 主要メトリクス
+- **スループット**: 1秒あたりのリクエスト数
+- **レイテンシ**: 平均、最小、最大、標準偏差
+- **接続時間**: TCP/QUIC接続確立時間
+- **処理時間**: 接続確立後の純粋なリクエスト処理時間
+- **成功率**: エラー率とリトライ統計
 
-## 結果分析
+## 🔬 公平性の改善
 
-### 測定項目
-- **スループット**: リクエスト/秒
-- **レイテンシ**: 平均・最小・最大・標準偏差
-- **成功率**: 成功リクエスト率
-- **接続時間**: 接続確立時間
-- **初回バイト時間**: Time to First Byte
+### 従来の問題点
+- HTTP/2とHTTP/3で接続処理が異なる（TCP vs QUIC）
+- 接続確立のオーバーヘッドが性能比較に影響
+- 実装の成熟度の違いによる不公平
 
-### 出力形式
-- **詳細ログ**: 各条件の生データ
-- **CSVレポート**: 全条件の比較データ
-- **比較レポート**: プロトコル間の直接比較
+### 改善策
+1. **接続確立の分離**: ウォームアップ期間で接続を確立
+2. **純粋な処理時間測定**: 接続時間を除外したリクエスト処理性能
+3. **統一された負荷パラメータ**: 両プロトコルで同じ条件
+4. **統計的有意性**: 十分なサンプルサイズと信頼区間
 
-## ファイル構成
+### 公平性パラメータ
+- ウォームアップリクエスト: 1,000
+- 測定リクエスト: 9,000
+- 接続安定化時間: 2秒
 
-```
-gRPC_over_HTTP3/
-├── client/
-│   └── Dockerfile          # h2load + curl環境
-├── router/
-│   └── Dockerfile          # tc netem環境
-├── server/
-│   ├── Dockerfile          # nginx + quiche環境
-│   ├── nginx.conf          # HTTP/2/3設定
-│   └── proto/
-│       └── echo.proto      # gRPC定義
-├── scripts/
-│   ├── run_bench.sh        # ベンチマーク実行
-│   ├── netem_delay_loss.sh # ネットワーク条件設定
-│   └── merge_results.py    # 結果分析
-├── logs/                   # 結果ログ
-└── docker-compose.yml      # コンテナ構成
-```
+## 🛠️ 技術スタック
 
-## 技術的詳細
-
-### HTTP/3実装
-- **QUIC**: UDPベースの信頼性のあるトランスポート
-- **0-RTT**: 接続再利用による高速化
-- **マルチプレクシング**: 単一接続での複数ストリーム
-- **ヘッダー圧縮**: QPACKによる効率化
+### プロトコル実装
+- **HTTP/2**: nginx + h2load
+- **HTTP/3**: nginx + quiche + h2load（HTTP/3対応版）
 
 ### ネットワークエミュレーション
-- **tc netem**: Linuxカーネルレベルでの遅延・損失制御
-- **リアルタイム制御**: 動的な条件変更
-- **統計的制御**: パケットレベルでの正確な制御
+- **tc netem**: 遅延・損失・ジッター制御
+- **Docker network**: 分離されたテスト環境
 
-### 負荷テスト最適化
-- **並列処理**: マルチスレッド・マルチプロセス
-- **接続プール**: 効率的な接続管理
-- **メモリ最適化**: 大量リクエスト処理
-- **エラーハンドリング**: 堅牢な失敗処理
+### 分析ツール
+- **Python**: 統計分析とレポート生成
+- **h2load**: 負荷テストとメトリクス収集
+- **curl**: HTTP/3接続検証
 
-## 今後の拡張
+## 📋 使用技術
 
-- [ ] HTTP/3対応h2loadの実装
-- [ ] より多様なネットワーク条件
-- [ ] リアルタイム可視化
-- [ ] 自動化された継続的ベンチマーク
-- [ ] より大規模な負荷テスト 
+### プロトコル
+- HTTP/2 over TLS
+- HTTP/3 over QUIC
+- gRPC over HTTP/2/3
+
+### ネットワーク
+- TCP (HTTP/2)
+- QUIC (HTTP/3)
+- TLS 1.3
+- ALPN (Application-Layer Protocol Negotiation)
+
+### コンテナ技術
+- Docker
+- Docker Compose
+- カスタムネットワーク
+
+### 分析・可視化
+- Python 3.7+
+- NumPy (統計計算)
+- CSV/JSON (データ形式)
+- 日本語レポート生成
+
+## 🔍 トラブルシューティング
+
+### よくある問題
+1. **HTTP/3接続失敗**: サーバーのquiche実装を確認
+2. **ネットワークエミュレーション**: tc netemの権限確認
+3. **メモリ不足**: Dockerリソース制限の調整
+
+### ログ確認
+```bash
+# サーバーログ
+docker logs grpc-server
+
+# ルーターログ  
+docker logs grpc-router
+
+# クライアントログ
+docker logs grpc-client
+```
+
+## 📚 参考文献
+
+- [HTTP/3 Specification](https://quicwg.org/base-drafts/draft-ietf-quic-http.html)
+- [QUIC Protocol](https://tools.ietf.org/html/draft-ietf-quic-transport)
+- [nginx HTTP/3 Module](https://github.com/cloudflare/quiche)
+- [h2load Documentation](https://nghttp2.org/documentation/h2load-howto.html)
+
+## 📄 ライセンス
+
+MIT License
+
+## 🤝 貢献
+
+プルリクエストやイシューの報告を歓迎します。 

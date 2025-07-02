@@ -1,0 +1,266 @@
+================================================
+HTTP/2 vs HTTP/3 性能比較レポート
+================================================
+生成時刻: 2025-07-02 10:43:24
+テストパラメータ:
+  総リクエスト数: 10000
+  接続数: 100
+  スレッド数: 20
+  最大同時ストリーム数: 100
+
+================================================
+サマリーテーブル
+================================================
+テストケース プロトコル 成功数 スループット 平均レイテンシ 最小レイテンシ 最大レイテンシ 標準偏差 +/- SD      
+--------------------------------------------------------------------------------------------------------
+0ms/0%          HTTP/2   1000
+9000 10458.28
+12819.33 14.55
+38.23  for
+for      request:
+request: 68.67
+632.51 39.46ms
+312.71ms%
+0ms/0%          HTTP/3   1000
+9000 969.86
+8403.42 1.77
+1.55    for
+for      request:
+request: 333.94
+828.63 117.53ms
+305.00ms%
+50ms/0%         HTTP/2   1000
+9000 10588.96
+12222.75 16.59
+49.84  for
+for      request:
+request: 73.50
+660.67 44.51ms
+341.11ms%
+50ms/0%         HTTP/3   1000
+7909 961.16
+6361.02 912
+1.48     for
+for      request:
+request: 282.72
+515.21 94.59ms
+244.33ms%
+100ms/1%        HTTP/2   1000
+9000 9975.16
+12488.33 12.33
+61.72  for
+for      request:
+request: 76.44
+667.18 45.08ms
+343.20ms%
+100ms/1%        HTTP/3   1000
+9000 971.22
+8364.37 690
+1.39     for
+for      request:
+request: 289.17
+618.21 95.12ms
+293.76ms%
+150ms/3%        HTTP/2   1000
+9000 10853.64
+12793.87 13.81
+31.65  for
+for      request:
+request: 61.45
+628.68 40.52ms
+310.03ms%
+150ms/3%        HTTP/3   1000
+9000 966.26
+7242.21 655
+1.72     for
+for      request:
+request: 302.89
+664.22 91.93ms
+295.35ms%
+
+================================================
+テストケース別詳細メトリクス
+================================================
+
+テストケース: 0ms遅延, 0%損失
+----------------------------------------
+HTTP/2 結果:
+  スループット: 10458.28 req/s, 3.08MB/s
+12819.33 req/s, 3.72MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 9000 done, 9000 succeeded, 0
+  トラフィック: traffic: 301.46KB (308698) total, 207.98KB (212967) headers (space savings 27.81%), 58.59KB (60000) data
+traffic: 2.61MB (2740430) total, 1.83MB (1916530) headers (space savings 27.81%), 527.34KB (540000) data
+  リクエスト時間: for request: 14.55ms 68.67ms 39.46ms
+for request: 38.23ms 632.51ms 312.71ms
+  接続時間: for connect: 2.55ms 78.45ms 41.82ms
+for connect: 4.22ms 99.74ms 58.30ms
+  初回バイト時間: to 1st byte: 26.05ms 93.01ms
+to 1st byte: 48.02ms 634.53ms
+  リクエスト/秒: in 95.62ms, 10458.28 req/s, 3.08MB/s
+: 107.41 381.59 137.79 69.87
+in 702.07ms, 12819.33 req/s, 3.72MB/s
+: 128.89 1195.55 217.62 245.02
+HTTP/3 結果:
+  スループット: 969.86 req/s, 270.10KB/s
+8403.42 req/s, 2.30MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 9000 done, 9000 succeeded, 0
+  トラフィック: traffic: 278.49KB (285174) total, 210.89KB (215950) headers (space savings 26.80%), 60.55KB (62000) data
+traffic: 2.46MB (2584229) total, 1.85MB (1943472) headers (space savings 26.80%), 544.92KB (558000) data
+  リクエスト時間: for request: 1.77ms 333.94ms 117.53ms
+for request: 1.55ms 828.63ms 305.00ms
+  接続時間: for connect: 77.06ms 1.02s 118.07ms
+for connect: 95.36ms 1.01s 163.98ms
+  初回バイト時間: to 1st byte: 87.65ms 1.02s
+to 1st byte: 107.35ms 1.01s
+  リクエスト/秒: in 1.03s, 969.86 req/s, 270.10KB/s
+: 9.78 108.68 68.32 38.98
+in 1.07s, 8403.42 req/s, 2.30MB/s
+: 84.59 424.53 164.37 54.67
+
+テストケース: 50ms遅延, 0%損失
+----------------------------------------
+HTTP/2 結果:
+  スループット: 10588.96 req/s, 3.12MB/s
+12222.75 req/s, 3.55MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 9000 done, 9000 succeeded, 0
+  トラフィック: traffic: 301.34KB (308569) total, 207.95KB (212942) headers (space savings 27.82%), 58.59KB (60000) data
+traffic: 2.61MB (2740408) total, 1.83MB (1916508) headers (space savings 27.82%), 527.34KB (540000) data
+  リクエスト時間: for request: 16.59ms 73.50ms 44.51ms
+for request: 49.84ms 660.67ms 341.11ms
+  接続時間: for connect: 4.32ms 74.66ms 39.45ms
+for connect: 3.36ms 109.09ms 67.47ms
+  初回バイト時間: to 1st byte: 75.20ms 93.57ms
+to 1st byte: 53.28ms 667.80ms
+  リクエスト/秒: in 94.44ms, 10588.96 req/s, 3.12MB/s
+: 106.69 132.72 119.27 5.77
+in 736.33ms, 12222.75 req/s, 3.55MB/s
+: 122.94 1386.76 171.64 204.42
+HTTP/3 結果:
+  スループット: 961.16 req/s, 267.70KB/s
+6361.02 req/s, 1.74MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 7909 done, 6898 succeeded, 2102
+  トラフィック: traffic: 278.52KB (285204) total, 210.88KB (215940) headers (space savings 26.80%), 60.55KB (62000) data
+traffic: 1.89MB (1983962) total, 1.42MB (1492355) headers (space savings 26.80%), 418.44KB (428482) data
+  リクエスト時間: for request: 912us 282.72ms 94.59ms
+for request: 1.48ms 515.21ms 244.33ms
+  接続時間: for connect: 66.51ms 1.02s 138.64ms
+for connect: 96.30ms 1.02s 164.10ms
+  初回バイト時間: to 1st byte: 73.42ms 1.02s
+to 1st byte: 105.64ms 1.03s
+  リクエスト/秒: in 1.04s, 961.16 req/s, 267.70KB/s
+: 9.71 130.68 74.20 46.34
+in 1.08s, 6361.02 req/s, 1.74MB/s
+: 0.00 235.82 125.65 53.25
+
+テストケース: 100ms遅延, 1%損失
+----------------------------------------
+HTTP/2 結果:
+  スループット: 9975.16 req/s, 2.94MB/s
+12488.33 req/s, 3.63MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 9000 done, 9000 succeeded, 0
+  トラフィック: traffic: 301.42KB (308654) total, 207.95KB (212936) headers (space savings 27.82%), 58.59KB (60000) data
+traffic: 2.61MB (2740433) total, 1.83MB (1916533) headers (space savings 27.81%), 527.34KB (540000) data
+  リクエスト時間: for request: 12.33ms 76.44ms 45.08ms
+for request: 61.72ms 667.18ms 343.20ms
+  接続時間: for connect: 2.23ms 80.09ms 43.24ms
+for connect: 3.32ms 90.35ms 49.34ms
+  初回バイト時間: to 1st byte: 14.57ms 97.74ms
+to 1st byte: 65.09ms 662.46ms
+  リクエスト/秒: in 100.25ms, 9975.16 req/s, 2.94MB/s
+: 102.21 682.92 121.86 72.51
+in 720.67ms, 12488.33 req/s, 3.63MB/s
+: 125.45 1109.73 166.54 175.06
+HTTP/3 結果:
+  スループット: 971.22 req/s, 270.60KB/s
+8364.37 req/s, 2.29MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 9000 done, 9000 succeeded, 0
+  トラフィック: traffic: 278.62KB (285303) total, 210.92KB (215983) headers (space savings 26.79%), 60.55KB (62000) data
+traffic: 2.47MB (2584845) total, 1.85MB (1943455) headers (space savings 26.80%), 544.92KB (558000) data
+  リクエスト時間: for request: 690us 289.17ms 95.12ms
+for request: 1.39ms 618.21ms 293.76ms
+  接続時間: for connect: 70.29ms 1.02s 112.48ms
+for connect: 92.42ms 1.02s 161.49ms
+  初回バイト時間: to 1st byte: 75.35ms 1.02s
+to 1st byte: 97.19ms 1.03s
+  リクエスト/秒: in 1.03s, 971.22 req/s, 270.60KB/s
+: 9.73 119.83 67.91 43.36
+in 1.08s, 8364.37 req/s, 2.29MB/s
+: 84.01 397.13 151.42 55.41
+
+テストケース: 150ms遅延, 3%損失
+----------------------------------------
+HTTP/2 結果:
+  スループット: 10853.64 req/s, 3.19MB/s
+12793.87 req/s, 3.72MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 9000 done, 9000 succeeded, 0
+  トラフィック: traffic: 301.39KB (308623) total, 207.95KB (212944) headers (space savings 27.82%), 58.59KB (60000) data
+traffic: 2.61MB (2740335) total, 1.83MB (1916435) headers (space savings 27.82%), 527.34KB (540000) data
+  リクエスト時間: for request: 13.81ms 61.45ms 40.52ms
+for request: 31.65ms 628.68ms 310.03ms
+  接続時間: for connect: 1.59ms 73.43ms 38.45ms
+for connect: 3.93ms 115.16ms 67.52ms
+  初回バイト時間: to 1st byte: 17.67ms 87.70ms
+to 1st byte: 44.39ms 625.98ms
+  リクエスト/秒: in 92.14ms, 10853.64 req/s, 3.19MB/s
+: 113.83 560.95 131.73 47.50
+in 703.46ms, 12793.87 req/s, 3.72MB/s
+: 128.63 350.32 149.62 37.09
+HTTP/3 結果:
+  スループット: 966.26 req/s, 269.17KB/s
+7242.21 req/s, 1.98MB/s
+  リクエスト: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0
+9000 total, 9000 started, 9000 done, 9000 succeeded, 0
+  トラフィック: traffic: 278.57KB (285252) total, 210.88KB (215936) headers (space savings 26.80%), 60.55KB (62000) data
+traffic: 2.46MB (2584676) total, 1.85MB (1943459) headers (space savings 26.80%), 544.92KB (558000) data
+  リクエスト時間: for request: 655us 302.89ms 91.93ms
+for request: 1.72ms 664.22ms 295.35ms
+  接続時間: for connect: 76.02ms 1.02s 144.00ms
+for connect: 98.16ms 1.03s 166.68ms
+  初回バイト時間: to 1st byte: 85.15ms 1.02s
+to 1st byte: 101.32ms 1.03s
+  リクエスト/秒: in 1.03s, 966.26 req/s, 269.17KB/s
+: 9.69 111.11 66.95 42.07
+in 1.24s, 7242.21 req/s, 1.98MB/s
+: 72.77 388.68 161.00 60.84
+
+================================================
+パフォーマンス分析
+================================================
+
+テストケース: 0ms遅延, 0%損失
+----------------------------------------
+
+テストケース: 50ms遅延, 0%損失
+----------------------------------------
+
+テストケース: 100ms遅延, 1%損失
+----------------------------------------
+
+テストケース: 150ms遅延, 3%損失
+----------------------------------------
+
+================================================
+結論
+================================================
+このレポートは、異なるネットワーク条件下でのHTTP/2とHTTP/3の
+包括的な性能比較を提供します。
+
+分析された主要メトリクス:
+- スループット（1秒あたりのリクエスト数）
+- レイテンシ（平均、最小、最大）
+- 標準偏差と分布
+- 接続時間と初回バイト時間
+- 成功率とエラー処理
+
+テストされたネットワーク条件:
+- 0ms遅延, 0%パケット損失
+- 50ms遅延, 0%パケット損失
+- 100ms遅延, 1%パケット損失
+- 150ms遅延, 3%パケット損失

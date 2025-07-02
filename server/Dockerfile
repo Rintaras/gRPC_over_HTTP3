@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     clang \
     libclang-12-dev \
     llvm-12-dev \
+    autoconf \
+    automake \
+    libtool \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust with latest version
@@ -61,8 +64,17 @@ RUN mkdir -p /opt/nginx-h3/certs \
         -out /opt/nginx-h3/certs/server.crt \
         -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Test/CN=server"
 
-# Create nginx configuration directory
-RUN mkdir -p /opt/nginx-h3/conf /opt/nginx-h3/proto
+# Create nginx configuration directory and log directories
+RUN mkdir -p /opt/nginx-h3/conf /opt/nginx-h3/proto /var/log/nginx
+
+# Build HTTP/3 capable h2load/h3load (without sfparse for now)
+RUN git clone --depth 1 --branch v1.0.0 https://github.com/ngtcp2/nghttp3.git \
+    && cd nghttp3 \
+    && autoreconf -i \
+    && ./configure --enable-http3 --enable-app \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig
 
 # Copy configuration files
 COPY server/nginx.conf /opt/nginx-h3/conf/nginx.conf

@@ -60,7 +60,7 @@ def parse_h2load_log(log_file):
             metrics['successful_requests'] = int(requests_match.group(4))
             metrics['failed_requests'] = int(requests_match.group(5))
             metrics['timeout_requests'] = int(requests_match.group(7))
-            
+        
         # Extract performance metrics
         req_per_sec_match = re.search(r'(\d+\.\d+) req/s', content)
         if req_per_sec_match:
@@ -97,10 +97,10 @@ def parse_h2load_log(log_file):
                 '4xx': int(status_match.group(3)),
                 '5xx': int(status_match.group(4))
             }
-            
+        
     except Exception as e:
         print(f"Error parsing {log_file}: {e}")
-        
+    
     return metrics
 
 def parse_curl_log(log_file):
@@ -154,7 +154,7 @@ def parse_curl_log(log_file):
                 metrics['successful_requests'] = int(requests_match.group(4))
                 metrics['failed_requests'] = int(requests_match.group(5))
                 metrics['timeout_requests'] = int(requests_match.group(7))
-                
+        
             # Extract performance metrics
             req_per_sec_match = re.search(r'(\d+\.\d+) req/s', content)
             if req_per_sec_match:
@@ -176,7 +176,7 @@ def parse_curl_log(log_file):
             connect_match = re.search(r'time for connect:\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)', content)
             if connect_match:
                 metrics['connect_time_mean'] = float(connect_match.group(3))
-                
+            
             # Extract first byte time
             first_byte_match = re.search(r'time to 1st byte:\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)', content)
             if first_byte_match:
@@ -228,7 +228,7 @@ def parse_curl_log(log_file):
         
     except Exception as e:
         print(f"Error parsing {log_file}: {e}")
-        
+    
     return metrics
 
 def calculate_success_rate(metrics):
@@ -275,7 +275,7 @@ def generate_csv_report(log_dir, output_file):
                 # Flatten status codes
                 row = {k: v for k, v in metrics.items() if k not in ['status_codes']}
                 writer.writerow(row)
-                
+        
         print(f"CSV report generated: {output_file}")
         print(f"Processed {len(all_metrics)} log files")
         
