@@ -14,6 +14,7 @@ from matplotlib import rcParams
 import seaborn as sns
 from datetime import datetime
 import glob
+import re
 
 # 日本語フォント設定
 plt.rcParams['font.family'] = ['DejaVu Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Takao', 'IPAexGothic', 'IPAPGothic', 'VL PGothic', 'Noto Sans CJK JP']
@@ -68,10 +69,16 @@ def create_performance_comparison_graphs(data, output_dir):
     latency_advantage = [row['Latency Advantage (%)'] for row in data]
     connection_advantage = [row['Connection Advantage (%)'] for row in data]
     
+    # ネットワーク条件のサマリを作成
+    unique_conditions = sorted(set((row['Delay (ms)'], row['Loss (%)'], row['Bandwidth (Mbps)']) for row in data))
+    cond_strs = [f"遅延:{d}ms 損失:{l}% 帯域:{b}Mbps" for d, l, b in unique_conditions]
+    network_summary = " / ".join(cond_strs)
+
     # Create figure with subplots
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('HTTP/3 vs HTTP/2 性能比較 - 極端なネットワーク条件での逆転現象', 
-                 fontsize=16, fontweight='bold')
+    fig.suptitle('HTTP/3 vs HTTP/2 性能比較 - ネットワーク条件での逆転現象', fontsize=16, fontweight='bold')
+    fig.subplots_adjust(top=0.88)  # タイトルとサブタイトルの間隔調整
+    fig.text(0.5, 0.93, f"テスト条件: {network_summary}", ha='center', va='center', fontsize=12, color='gray')
     
     # 1. Throughput comparison
     ax1 = axes[0, 0]
@@ -503,19 +510,38 @@ def load_benchmark_csvs(log_dir):
         h2_csv = h2_map[case]
         h3_csv = h3_map[case]
         # h2/h3のcsvはh2loadの--log-file出力（1行目ヘッダ、2行目以降データ）
-        def extract_metrics(csvfile):
-            with open(csvfile, 'r', encoding='utf-8') as f:
-                lines = [line.strip() for line in f if line.strip()]
-                if not lines:
-                    return 0, 0, 0
-                last = lines[-1].split('\t')
-                try:
-                    value = float(last[2])
-                except Exception:
-                    value = 0
-                return value, value, value
-        h2_throughput, h2_latency, h2_connect = extract_metrics(h2_csv)
-        h3_throughput, h3_latency, h3_connect = extract_metrics(h3_csv)
+        def extract_metrics_from_log(logfile):
+            # h2loadのサマリーレポートから値を抽出
+            throughput = 0
+            latency = 0
+            connect = 0
+            with open(logfile, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            # サマリーレポートの該当行を逆順で探す
+            for i in range(len(lines)-1, -1, -1):
+                line = lines[i]
+                if 'time for request:' in line:
+                    # 例: time for request:      735us    797.12ms    361.19ms    198.30ms    60.34%
+                    m = re.search(r'time for request:\s+([\d\.]+\w+)\s+([\d\.]+\w+)\s+([\d\.]+)ms', line)
+                    if m:
+                        latency = float(m.group(3))
+                if 'time for connect:' in line:
+                    m = re.search(r'time for connect:\s+([\d\.]+\w+)\s+([\d\.]+\w+)\s+([\d\.]+)ms', line)
+                    if m:
+                        connect = float(m.group(3))
+                if 'finished in' in line and 'req/s' in line:
+                    # 例: finished in 953.07ms, 9443.21 req/s, 2.74MB/s
+                    m = re.search(r'finished in [\d\.]+\w+, ([\d\.]+) req/s', line)
+                    if m:
+                        throughput = float(m.group(1))
+                if throughput and latency and connect:
+                    break
+            return throughput, latency, connect
+
+        h2_log = h2_csv.replace('.csv', '.log')
+        h3_log = h3_csv.replace('.csv', '.log')
+        h2_throughput, h2_latency, h2_connect = extract_metrics_from_log(h2_log)
+        h3_throughput, h3_latency, h3_connect = extract_metrics_from_log(h3_log)
         # 優位性計算
         throughput_adv = ((h3_throughput - h2_throughput) / h2_throughput * 100) if h2_throughput else 0
         latency_adv = ((h2_latency - h3_latency) / h2_latency * 100) if h2_latency else 0
