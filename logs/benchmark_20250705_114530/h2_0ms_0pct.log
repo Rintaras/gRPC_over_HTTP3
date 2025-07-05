@@ -1,12 +1,12 @@
-=== HTTP/3 BENCHMARK RESULTS ===
+=== HTTP/2 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-07-02 10:42:54
-Delay: 50ms
+Timestamp: 2025-07-05 11:45:35
+Delay: 0ms
 Loss: 0%
 Router IP: 172.30.0.254
 Server IP: 172.30.0.2
 Current qdisc configuration:
-qdisc netem 8007: root refcnt 9 limit 1000 delay 50ms
+qdisc noqueue 0: root refcnt 2 
 
 === CONNECTION ESTABLISHMENT PHASE ===
 -t: warning: the number of threads is greater than hardware cores.
@@ -34,7 +34,7 @@ spawning thread #19: 5 total client(s). 50 total requests
 TLS Protocol: TLSv1.3
 Cipher: TLS_AES_128_GCM_SHA256
 Server Temp Key: X25519 253 bits
-Application protocol: h3
+Application protocol: h2
 progress: 10% done
 progress: 20% done
 progress: 30% done
@@ -46,16 +46,15 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 1.04s, 961.16 req/s, 267.70KB/s
+finished in 97.27ms, 10280.98 req/s, 3.03MB/s
 requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 278.52KB (285204) total, 210.88KB (215940) headers (space savings 26.80%), 60.55KB (62000) data
-UDP datagram: 694 sent, 627 received
+traffic: 301.32KB (308547) total, 207.96KB (212946) headers (space savings 27.81%), 58.59KB (60000) data
                      min         max         mean         sd        +/- sd
-time for request:      912us    282.72ms     94.59ms    108.83ms    61.00%
-time for connect:    66.51ms       1.02s    138.64ms    242.92ms    93.00%
-time to 1st byte:    73.42ms       1.02s    218.30ms    243.07ms    93.00%
-req/s           :       9.71      130.68       74.20       46.34    77.00%
+time for request:    15.27ms     68.93ms     45.46ms     15.99ms    56.00%
+time for connect:     3.46ms     78.00ms     40.38ms     21.92ms    61.00%
+time to 1st byte:    67.41ms     95.72ms     85.80ms      6.37ms    70.00%
+req/s           :     104.36      148.00      117.07        9.37    76.00%
 Waiting 2s for connections to stabilize...
 === MEASUREMENT PHASE ===
 -t: warning: the number of threads is greater than hardware cores.
@@ -83,7 +82,7 @@ spawning thread #19: 5 total client(s). 450 total requests
 TLS Protocol: TLSv1.3
 Cipher: TLS_AES_128_GCM_SHA256
 Server Temp Key: X25519 253 bits
-Application protocol: h3
+Application protocol: h2
 progress: 10% done
 progress: 20% done
 progress: 30% done
@@ -95,21 +94,20 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 1.08s, 6361.02 req/s, 1.74MB/s
-requests: 9000 total, 9000 started, 7909 done, 6898 succeeded, 2102 failed, 2102 errored, 0 timeout
-status codes: 6911 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 1.89MB (1983962) total, 1.42MB (1492355) headers (space savings 26.80%), 418.44KB (428482) data
-UDP datagram: 1612 sent, 2418 received
+finished in 626.10ms, 14374.68 req/s, 4.17MB/s
+requests: 9000 total, 9000 started, 9000 done, 9000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 9000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 2.61MB (2740398) total, 1.83MB (1916498) headers (space savings 27.82%), 527.34KB (540000) data
                      min         max         mean         sd        +/- sd
-time for request:     1.48ms    515.21ms    244.33ms    162.49ms    53.02%
-time for connect:    96.30ms       1.02s    164.10ms    236.59ms    93.00%
-time to 1st byte:   105.64ms       1.03s    184.62ms    233.35ms    92.93%
-req/s           :       0.00      235.82      125.65       53.25    67.00%
+time for request:    55.10ms    569.27ms    281.94ms    158.31ms    53.70%
+time for connect:     4.05ms     90.54ms     44.46ms     26.11ms    53.00%
+time to 1st byte:    59.21ms    575.81ms    282.75ms    161.79ms    57.00%
+req/s           :     144.65      810.16      188.08      108.93    93.00%
 
 === BENCHMARK SUMMARY ===
-Protocol: HTTP/3 (confirmed)
+Protocol: HTTP/2
 Fair Comparison: Enabled
 Warmup Requests: 1000
 Measurement Requests: 9000
-End Time: 2025-07-02 10:42:59
-CSV Log: /logs/h3_50ms_0pct.csv
+End Time: 2025-07-05 11:45:38
+CSV Log: /logs/benchmark_20250705_114530/h2_0ms_0pct.csv

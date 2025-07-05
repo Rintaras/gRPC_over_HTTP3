@@ -1,6 +1,7 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Tokyo
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -19,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     automake \
     libtool \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust with latest version
@@ -87,4 +89,7 @@ WORKDIR /opt/nginx-h3
 EXPOSE 80 443
 
 # Start nginx in foreground
-CMD ["/opt/nginx-h3/sbin/nginx", "-g", "daemon off;"] 
+CMD ["/opt/nginx-h3/sbin/nginx", "-g", "daemon off;"]
+
+COPY ../scripts/sync_time.sh /usr/local/bin/sync_time.sh
+RUN chmod +x /usr/local/bin/sync_time.sh 

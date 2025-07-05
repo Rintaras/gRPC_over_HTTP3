@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -y \
     libjansson-dev \
     libxml2-dev \
     libpsl-dev \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Build and install nghttp3
@@ -93,11 +94,18 @@ RUN git clone --recursive https://github.com/curl/curl.git && \
 ENV PATH="/usr/local/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
+# Set timezone to JST
+ENV TZ=Asia/Tokyo
+
 # Copy scripts
 COPY scripts/ /scripts/
 RUN chmod +x /scripts/*.sh
 
 WORKDIR /scripts
+
+# Copy sync_time.sh
+COPY ../scripts/sync_time.sh /usr/local/bin/sync_time.sh
+RUN chmod +x /usr/local/bin/sync_time.sh
 
 # Keep container running
 CMD ["sleep", "infinity"] 

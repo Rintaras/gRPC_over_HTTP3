@@ -52,25 +52,30 @@ def parse_h2load_log(log_file):
             else:
                 metrics['protocol'] = 'HTTP/2'
         
-        # Extract throughput (req/s)
-        throughput_match = re.search(r'(\d+(?:\.\d+)?)\s+req/s', content)
-        if throughput_match:
-            metrics['throughput'] = float(throughput_match.group(1))
+        # Extract throughput (req/s) - measurement phase only
+        throughput_lines = re.findall(r'finished in.*?(\d+(?:\.\d+)?)\s+req/s', content)
+        if throughput_lines:
+            # Use the last occurrence (measurement phase)
+            metrics['throughput'] = float(throughput_lines[-1])
         
-        # Extract request counts
-        requests_match = re.search(r'(\d+)\s+total,\s+(\d+)\s+started,\s+(\d+)\s+done,\s+(\d+)\s+succeeded', content)
-        if requests_match:
-            metrics['total_requests'] = int(requests_match.group(1))
-            metrics['success_count'] = int(requests_match.group(4))
+        # Extract request counts - measurement phase only
+        requests_matches = re.findall(r'requests:\s+(\d+)\s+total,\s+(\d+)\s+started,\s+(\d+)\s+done,\s+(\d+)\s+succeeded', content)
+        if requests_matches:
+            # Use the last occurrence (measurement phase)
+            last_match = requests_matches[-1]
+            metrics['total_requests'] = int(last_match[0])
+            metrics['success_count'] = int(last_match[3])
         
-        # Extract latency metrics
-        latency_match = re.search(r'time for request:\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)%', content)
-        if latency_match:
+        # Extract latency metrics - measurement phase only
+        latency_matches = re.findall(r'time for request:\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)%', content)
+        if latency_matches:
+            # Use the last occurrence (measurement phase)
+            last_match = latency_matches[-1]
             # Convert to milliseconds if needed
-            min_lat = float(latency_match.group(1))
-            max_lat = float(latency_match.group(2))
-            avg_lat = float(latency_match.group(3))
-            std_dev = float(latency_match.group(4))
+            min_lat = float(last_match[0])
+            max_lat = float(last_match[1])
+            avg_lat = float(last_match[2])
+            std_dev = float(last_match[3])
             
             # Convert microseconds to milliseconds
             if 'us' in content and 'time for request:' in content:
@@ -84,27 +89,33 @@ def parse_h2load_log(log_file):
             metrics['avg_latency'] = avg_lat
             metrics['std_dev'] = std_dev
         
-        # Extract connection time
-        conn_match = re.search(r'time for connect:\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)', content)
-        if conn_match:
-            conn_avg = float(conn_match.group(3))
+        # Extract connection time - measurement phase only
+        conn_matches = re.findall(r'time for connect:\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)', content)
+        if conn_matches:
+            # Use the last occurrence (measurement phase)
+            last_match = conn_matches[-1]
+            conn_avg = float(last_match[2])
             if 'us' in content and 'time for connect:' in content:
                 conn_avg /= 1000
             metrics['connection_time'] = conn_avg
         
-        # Extract first byte time
-        fbyte_match = re.search(r'time to 1st byte:\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)', content)
-        if fbyte_match:
-            fbyte_avg = float(fbyte_match.group(2))
+        # Extract first byte time - measurement phase only
+        fbyte_matches = re.findall(r'time to 1st byte:\s+([\d.]+)(?:ms|us)\s+([\d.]+)(?:ms|us)', content)
+        if fbyte_matches:
+            # Use the last occurrence (measurement phase)
+            last_match = fbyte_matches[-1]
+            fbyte_avg = float(last_match[1])
             if 'us' in content and 'time to 1st byte:' in content:
                 fbyte_avg /= 1000
             metrics['first_byte_time'] = fbyte_avg
         
-        # Extract traffic information
-        traffic_match = re.search(r'traffic:\s+([\d.]+)MB\s+\((\d+)\)\s+total,\s+([\d.]+)MB\s+\((\d+)\)\s+headers', content)
-        if traffic_match:
-            metrics['traffic_total'] = float(traffic_match.group(1))
-            metrics['traffic_headers'] = float(traffic_match.group(3))
+        # Extract traffic information - measurement phase only
+        traffic_matches = re.findall(r'traffic:\s+([\d.]+)MB\s+\((\d+)\)\s+total,\s+([\d.]+)MB\s+\((\d+)\)\s+headers', content)
+        if traffic_matches:
+            # Use the last occurrence (measurement phase)
+            last_match = traffic_matches[-1]
+            metrics['traffic_total'] = float(last_match[0])
+            metrics['traffic_headers'] = float(last_match[2])
         
         return metrics
         
@@ -272,16 +283,19 @@ def generate_fair_comparison_report(log_dir):
     print(f"  CSVデータ: {csv_file}")
 
 def main():
-    if len(sys.argv) != 2:
-        print("使用方法: python3 analyze_results.py <log_directory>")
+    """Main function"""
+    # コマンドライン引数でログディレクトリ指定可
+    if len(sys.argv) > 1:
+        log_dir = sys.argv[1]
+    elif os.path.exists("/logs") and os.path.isdir("/logs"):
+        log_dir = "/logs"
+    elif os.path.exists("./logs") and os.path.isdir("./logs"):
+        log_dir = "./logs"
+    else:
+        print("Error: Log directory not found (/logs or ./logs)")
         sys.exit(1)
     
-    log_dir = sys.argv[1]
-    if not os.path.exists(log_dir):
-        print(f"エラー: ログディレクトリ '{log_dir}' が見つかりません")
-        sys.exit(1)
-    
-    print("公平性を考慮した詳細分析を実行中...")
+    print(f"HTTP/3 vs HTTP/2性能分析を開始... (log_dir={log_dir})")
     generate_fair_comparison_report(log_dir)
     print("分析完了!")
 

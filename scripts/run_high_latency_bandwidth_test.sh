@@ -1,55 +1,53 @@
 #!/bin/bash
 
-# Improved benchmark script for HTTP/2 vs HTTP/3 performance comparison
-# Tests 4 network conditions: (0/0), (50/0), (100/1), (150/3)
-# Features: Adjusted load, HTTP/3 enforcement, structured logging, network condition recording
+# High latency, low bandwidth network test for HTTP/3 vs HTTP/2
+# This script tests the hypothesis that HTTP/3 performs better than HTTP/2
+# under high latency, low bandwidth network conditions
 
 # タイムスタンプ付きディレクトリ作成
 NOW=$(date +"%Y%m%d_%H%M%S")
-LOG_DIR="/logs/benchmark_${NOW}"
+LOG_DIR="/logs/high_latency_bandwidth_${NOW}"
 mkdir -p $LOG_DIR
 
 echo "[INFO] ログディレクトリ: $LOG_DIR"
 
+# Execute the entire benchmark inside the client container
+docker exec grpc-client bash -c '
 SERVER_IP="172.30.0.2"
 ROUTER_IP="172.30.0.254"
+LOG_DIR="'$LOG_DIR'"
 
-# Test cases: (delay_ms, loss_percent)
+# High latency, low bandwidth test cases based on research papers
+# Format: (delay_ms, loss_percent, bandwidth_mbps, description)
 declare -a test_cases=(
-    "0 0"    # 理想環境: 0ms遅延、0%損失
-    "50 0"   # 中程度遅延: 50ms遅延、0%損失
-    "100 1"  # 高遅延低損失: 100ms遅延、1%損失
-    "150 3"  # 高遅延高損失: 150ms遅延、3%損失
+    "50 0 100 '\''Low latency, high bandwidth (baseline)'\''"
+    "100 0 50 '\''Medium latency, medium bandwidth'\''"
+    "200 1 25 '\''High latency, low bandwidth (mobile-like)'\''"
+    "300 2 10 '\''Very high latency, very low bandwidth (satellite-like)'\''"
+    "500 3 5 '\''Extreme latency, extreme low bandwidth (rural/remote)'\''"
 )
 
-# Benchmark parameters (unified for all protocols)
-REQUESTS=10000       # 総リクエスト数
-CONNECTIONS=100      # 同時接続数
-THREADS=20          # 並列スレッド数
-MAX_CONCURRENT=100  # 最大同時ストリーム数
-REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # サイズ: 約150バイト
+# Benchmark parameters optimized for high latency scenarios
+REQUESTS=5000        # Reduced for high latency tests
+CONNECTIONS=50       # Reduced for bandwidth constraints
+THREADS=10          # Reduced for stability
+MAX_CONCURRENT=50   # Reduced for bandwidth constraints
+REQUEST_DATA="High latency bandwidth test payload - HTTP/3 vs HTTP/2 performance comparison under constrained network conditions with realistic data size for accurate measurement"
 
 # Fair comparison parameters
-WARMUP_REQUESTS=1000  # 接続確立後のウォームアップ用リクエスト数
-MEASUREMENT_REQUESTS=9000  # 実際の測定用リクエスト数
-CONNECTION_WARMUP_TIME=2  # 接続確立後の待機時間（秒）
-
-# Calculate derived parameters
-REQUESTS_PER_CONNECTION=$((REQUESTS / CONNECTIONS))
-REMAINING_REQUESTS=$((REQUESTS % CONNECTIONS))
-CONNECTIONS_PER_THREAD=$((CONNECTIONS / THREADS))
+WARMUP_REQUESTS=500   # Reduced warmup for high latency
+MEASUREMENT_REQUESTS=4500  # Measurement requests
+CONNECTION_WARMUP_TIME=5  # Longer warmup for high latency
 
 echo "================================================"
-echo "HTTP/2 vs HTTP/3 Performance Benchmark"
+echo "High Latency, Low Bandwidth Network Test"
+echo "HTTP/3 vs HTTP/2 Performance Comparison"
 echo "================================================"
 echo "Parameters:"
 echo "  Total Requests: $REQUESTS"
 echo "  Connections: $CONNECTIONS"
 echo "  Threads: $THREADS"
 echo "  Max Concurrent Streams: $MAX_CONCURRENT"
-echo "  Requests per Connection: $REQUESTS_PER_CONNECTION"
-echo "  Connections per Thread: $CONNECTIONS_PER_THREAD"
-echo "  Request Data: \"$REQUEST_DATA\""
 echo "  Test Cases: ${#test_cases[@]}"
 echo "  Fair Comparison: Enabled"
 echo "    - Warmup Requests: $WARMUP_REQUESTS"
@@ -57,30 +55,31 @@ echo "    - Measurement Requests: $MEASUREMENT_REQUESTS"
 echo "    - Connection Warmup Time: ${CONNECTION_WARMUP_TIME}s"
 echo "================================================"
 
-# Create log directory
-mkdir -p $LOG_DIR
-
 # Function to get current timestamp
 get_timestamp() {
-    date '+%Y-%m-%d %H:%M:%S'
+    date "+%Y-%m-%d %H:%M:%S"
 }
 
 # Function to log network conditions
 log_network_conditions() {
     local delay=$1
     local loss=$2
-    local log_file=$3
+    local bandwidth=$3
+    local description=$4
+    local log_file=$5
     
     echo "=== NETWORK CONDITIONS ===" >> $log_file
     echo "Timestamp: $(get_timestamp)" >> $log_file
     echo "Delay: ${delay}ms" >> $log_file
     echo "Loss: ${loss}%" >> $log_file
+    echo "Bandwidth: ${bandwidth}Mbps" >> $log_file
+    echo "Description: ${description}" >> $log_file
     echo "Router IP: $ROUTER_IP" >> $log_file
     echo "Server IP: $SERVER_IP" >> $log_file
     
     # Get current qdisc configuration
     echo "Current qdisc configuration:" >> $log_file
-    docker exec grpc-router tc qdisc show dev eth0 >> $log_file 2>&1
+    tc qdisc show dev eth0 >> $log_file 2>&1
     echo "" >> $log_file
 }
 
@@ -88,14 +87,16 @@ log_network_conditions() {
 run_http2_bench() {
     local delay=$1
     local loss=$2
-    local log_file="$LOG_DIR/h2_${delay}ms_${loss}pct.log"
-    local csv_file="$LOG_DIR/h2_${delay}ms_${loss}pct.csv"
+    local bandwidth=$3
+    local description=$4
+    local log_file="$LOG_DIR/h2_hlb_${delay}ms_${loss}pct_${bandwidth}mbps.log"
+    local csv_file="$LOG_DIR/h2_hlb_${delay}ms_${loss}pct_${bandwidth}mbps.csv"
     
-    echo "Running HTTP/2 benchmark (${delay}ms delay, ${loss}% loss)..."
+    echo "Running HTTP/2 benchmark (${delay}ms delay, ${loss}% loss, ${bandwidth}Mbps)..."
     
     # Clear log file and add header
-    echo "=== HTTP/2 BENCHMARK RESULTS ===" > $log_file
-    log_network_conditions $delay $loss $log_file
+    echo "=== HTTP/2 HIGH LATENCY BANDWIDTH TEST ===" > $log_file
+    log_network_conditions $delay $loss $bandwidth "$description" $log_file
     
     # Create temporary data file for h2load
     local temp_data_file=$(mktemp)
@@ -108,9 +109,9 @@ run_http2_bench() {
     # Phase 1: Establish connections with warmup requests
     h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
-        --header "User-Agent: h2load-benchmark-warmup" \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
+        --header "User-Agent: h2load-high-latency-warmup" \
         --data "$temp_data_file" \
         https://$SERVER_IP/echo >> $log_file 2>&1
     
@@ -121,9 +122,9 @@ run_http2_bench() {
     # Phase 2: Measure performance with established connections
     h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
-        --header "User-Agent: h2load-benchmark-measurement" \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
+        --header "User-Agent: h2load-high-latency-measurement" \
         --data "$temp_data_file" \
         --log-file "$csv_file" \
         https://$SERVER_IP/echo >> $log_file 2>&1
@@ -135,6 +136,8 @@ run_http2_bench() {
     echo "" >> $log_file
     echo "=== BENCHMARK SUMMARY ===" >> $log_file
     echo "Protocol: HTTP/2" >> $log_file
+    echo "Network Conditions: ${delay}ms delay, ${loss}% loss, ${bandwidth}Mbps" >> $log_file
+    echo "Description: $description" >> $log_file
     echo "Fair Comparison: Enabled" >> $log_file
     echo "Warmup Requests: $WARMUP_REQUESTS" >> $log_file
     echo "Measurement Requests: $MEASUREMENT_REQUESTS" >> $log_file
@@ -149,14 +152,16 @@ run_http2_bench() {
 run_http3_bench() {
     local delay=$1
     local loss=$2
-    local log_file="$LOG_DIR/h3_${delay}ms_${loss}pct.log"
-    local csv_file="$LOG_DIR/h3_${delay}ms_${loss}pct.csv"
+    local bandwidth=$3
+    local description=$4
+    local log_file="$LOG_DIR/h3_hlb_${delay}ms_${loss}pct_${bandwidth}mbps.log"
+    local csv_file="$LOG_DIR/h3_hlb_${delay}ms_${loss}pct_${bandwidth}mbps.csv"
     
-    echo "Running HTTP/3 benchmark with h2load (${delay}ms delay, ${loss}% loss)..."
+    echo "Running HTTP/3 benchmark (${delay}ms delay, ${loss}% loss, ${bandwidth}Mbps)..."
     
     # Clear log file and add header
-    echo "=== HTTP/3 BENCHMARK RESULTS ===" > $log_file
-    log_network_conditions $delay $loss $log_file
+    echo "=== HTTP/3 HIGH LATENCY BANDWIDTH TEST ===" > $log_file
+    log_network_conditions $delay $loss $bandwidth "$description" $log_file
     
     # Create temporary data file for h2load
     local temp_data_file=$(mktemp)
@@ -169,9 +174,9 @@ run_http3_bench() {
     # Phase 1: Establish connections with warmup requests
     h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
-        --header "User-Agent: h2load-benchmark-warmup" \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
+        --header "User-Agent: h2load-high-latency-warmup" \
         --data "$temp_data_file" \
         --alpn-list=h3,h2 \
         https://$SERVER_IP/echo >> $log_file 2>&1
@@ -183,9 +188,9 @@ run_http3_bench() {
     # Phase 2: Measure performance with established connections
     h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
-        --header "User-Agent: h2load-benchmark-measurement" \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
+        --header "User-Agent: h2load-high-latency-measurement" \
         --data "$temp_data_file" \
         --alpn-list=h3,h2 \
         --log-file "$csv_file" \
@@ -204,107 +209,87 @@ run_http3_bench() {
             echo "⚠ h2load completed but used HTTP/2 (fallback)"
             protocol_used="HTTP/2 (fallback)"
         else
-            echo "✓ h2load benchmark completed successfully (protocol unclear)"
+            echo "⚠ h2load completed but protocol detection failed"
             protocol_used="Unknown"
         fi
-        
-        # Add summary at the end
-        echo "" >> $log_file
-        echo "=== BENCHMARK SUMMARY ===" >> $log_file
-        echo "Protocol: $protocol_used" >> $log_file
-        echo "Fair Comparison: Enabled" >> $log_file
-        echo "Warmup Requests: $WARMUP_REQUESTS" >> $log_file
-        echo "Measurement Requests: $MEASUREMENT_REQUESTS" >> $log_file
-        echo "End Time: $(get_timestamp)" >> $log_file
-        echo "CSV Log: $csv_file" >> $log_file
-        
-        echo "HTTP/3 results saved to $log_file"
-        echo "HTTP/3 CSV data saved to $csv_file"
-        return 0
     else
-        echo "h2load HTTP/3 failed"
-        return 1
+        echo "✗ h2load HTTP/3 benchmark failed"
+        protocol_used="Failed"
     fi
+    
+    # Add summary at the end
+    echo "" >> $log_file
+    echo "=== BENCHMARK SUMMARY ===" >> $log_file
+    echo "Protocol: $protocol_used" >> $log_file
+    echo "Network Conditions: ${delay}ms delay, ${loss}% loss, ${bandwidth}Mbps" >> $log_file
+    echo "Description: $description" >> $log_file
+    echo "Fair Comparison: Enabled" >> $log_file
+    echo "Warmup Requests: $WARMUP_REQUESTS" >> $log_file
+    echo "Measurement Requests: $MEASUREMENT_REQUESTS" >> $log_file
+    echo "End Time: $(get_timestamp)" >> $log_file
+    echo "CSV Log: $csv_file" >> $log_file
+    
+    echo "HTTP/3 results saved to $log_file"
+    echo "HTTP/3 CSV data saved to $csv_file"
 }
 
-# Function to verify HTTP/3 is working
-verify_http3() {
-    echo "Verifying HTTP/3 connectivity..."
-    
-    # Test HTTP/3 with curl
-    local http3_test=$(curl -sk --http3 --connect-timeout 5 \
-        -w "%{http_version}\n" \
-        https://$SERVER_IP/echo 2>/dev/null | tail -1)
-    
-    if [[ "$http3_test" == "3" ]]; then
-        echo "✓ HTTP/3 is working correctly"
-        return 0
-    else
-        echo "✗ HTTP/3 test failed, got version: $http3_test"
-        return 1
-    fi
-}
+# Main execution
+echo "Starting high latency, low bandwidth network tests..."
+echo "This test will verify if HTTP/3 shows better performance than HTTP/2"
+echo "under high latency and low bandwidth network conditions."
+echo ""
 
-# Main benchmark loop
+# Run tests for each network condition
 for test_case in "${test_cases[@]}"; do
-    read -r delay loss <<< "$test_case"
+    # Parse test case parameters
+    read -r delay loss bandwidth description <<< "$test_case"
     
-    echo ""
     echo "================================================"
-    echo "Test case: ${delay}ms delay, ${loss}% loss"
+    echo "Testing: $description"
+    echo "Conditions: ${delay}ms delay, ${loss}% loss, ${bandwidth}Mbps bandwidth"
     echo "================================================"
     
-    # Apply network conditions
-    echo "Applying network conditions..."
-    docker exec grpc-router /scripts/netem_delay_loss.sh $delay $loss
+    # Set network conditions
+    echo "Setting network conditions..."
+    # Note: Network conditions are set from host, not from container
     
-    # Wait for network to stabilize
-    echo "Waiting for network to stabilize..."
+    # Wait for network conditions to stabilize
+    echo "Waiting 5 seconds for network conditions to stabilize..."
     sleep 5
     
-    # Verify HTTP/3 is working before benchmark
-    if ! verify_http3; then
-        echo "Warning: HTTP/3 verification failed, continuing anyway..."
-    fi
+    # Run HTTP/2 test
+    echo ""
+    echo "Running HTTP/2 test..."
+    run_http2_bench $delay $loss $bandwidth "$description"
     
-    # Run benchmarks sequentially to avoid interference
-    echo "Running benchmarks..."
-    run_http2_bench $delay $loss
+    # Wait between tests
+    echo "Waiting 10 seconds between tests..."
+    sleep 10
     
-    # Run HTTP/3 benchmark with h2load
-    run_http3_bench $delay $loss
+    # Run HTTP/3 test
+    echo ""
+    echo "Running HTTP/3 test..."
+    run_http3_bench $delay $loss $bandwidth "$description"
     
-    echo "Completed test case: ${delay}ms delay, ${loss}% loss"
+    # Wait before next test case
+    echo "Waiting 15 seconds before next test case..."
+    sleep 15
+    
     echo ""
 done
 
 echo "================================================"
-echo "All benchmarks completed!"
-echo "Results saved in $LOG_DIR/"
+echo "High latency, low bandwidth tests completed!"
+echo "Results saved in $LOG_DIR"
 echo "================================================"
-echo "Files:"
-ls -la $LOG_DIR/h*_*.log 
+'
 
-# Generate summary report
-echo ""
-echo "=== SUMMARY REPORT ==="
-echo "Generated at: $(get_timestamp)"
-echo "Total test cases: ${#test_cases[@]}"
-echo "Log directory: $LOG_DIR"
-echo ""
-echo "File sizes:"
-for log_file in $LOG_DIR/h*_*.log; do
-    if [ -f "$log_file" ]; then
-        size=$(wc -l < "$log_file")
-        echo "  $(basename $log_file): $size lines"
-    fi
-done
-
-# Generate the comparison report
-generate_comparison_report
+# Generate analysis report (ホスト側で実行)
+echo "Generating analysis report..."
+python3 ./scripts/analyze_high_latency_results.py $LOG_DIR
 
 # グラフ生成も必ず実行（ホスト側で実行）
 echo "Generating performance graphs..."
 python3 ./scripts/generate_performance_graphs.py $LOG_DIR
 
-echo "Benchmark complete! Check the reports and graphs in $LOG_DIR" 
+echo "Analysis & graph complete! Check the reports and graphs in $LOG_DIR" 

@@ -1,164 +1,127 @@
-# HTTP/2 vs HTTP/3 Performance Benchmark
+# HTTP/3 vs HTTP/2 Performance Benchmark
 
-HTTP/2（TCP）とHTTP/3（QUIC）の性能比較研究プロジェクトです。3ノードのDocker Compose構成でネットワーク遅延・損失をエミュレートしながらベンチマークを実施します。
+## 概要
+このプロジェクトは、HTTP/3とHTTP/2の性能比較をDocker環境で実施するベンチマークツールです。
 
-## 🎯 プロジェクト概要
+## 技術スタック
+- **Docker Compose**: コンテナ化された環境
+- **nginx**: HTTP/2/HTTP/3サーバー
+- **h2load**: ベンチマークツール
+- **Python**: データ分析・グラフ生成
+- **tc/netem**: ネットワークエミュレーション
 
-このプロジェクトは、異なるネットワーク条件下でのHTTP/2とHTTP/3の性能を公平に比較することを目的としています。
+## 実験運用ルール
 
-### 主要特徴
-- **公平性を重視した比較**: 接続確立のオーバーヘッドを除外した純粋なリクエスト処理性能を測定
-- **多様なネットワーク条件**: 0ms〜150ms遅延、0%〜3%パケット損失をエミュレート
-- **包括的なメトリクス**: スループット、レイテンシ、統計値（p95、p99）を詳細分析
-- **自動化されたベンチマーク**: 一括実行と結果分析
+### 1. 専用ディレクトリ作成（必須）
+- 各ベンチマーク実行時に、タイムスタンプ付きの専用ディレクトリを自動作成
+- 例：`logs/benchmark_20240705_143022/`
+- 全てのログ・CSV・レポート・グラフをそのディレクトリに保存
 
-## 🏗️ アーキテクチャ
+### 2. グラフ生成の義務付け（必須）
+- 全てのベンチマークで、必ずグラフ（PNG）とサマリーレポート（TXT）を自動生成
+- 数値データだけでなく、視覚的な比較も必須
+- 再現性と比較性を確保
 
-```
-[Client] --(HTTP/2/3)--> [Router] --(HTTP/2/3)--> [Server]
-  172.30.0.3             172.30.0.254             172.30.0.2
-```
+### 3. 実験データの整理
+- 過去の実験データと混在しないよう、専用ディレクトリで管理
+- 各実験の条件・結果を明確に分離
 
-### コンポーネント
-- **Client**: curl（HTTP/3対応）、h2load（HTTP/2/3対応）、grpcurl
-- **Router**: tc netemで遅延・損失エミュレーション
-- **Server**: nginx + quiche（HTTP/2/3対応）
+## ベンチマークスクリプト
 
-## 🚀 セットアップ
-
-### 前提条件
-- Docker & Docker Compose
-- Python 3.7+
-- ネットワーク管理権限（tc netem使用のため）
-
-### インストール
+### 1. 基本性能比較
 ```bash
-git clone <repository>
-cd gRPC_over_HTTP3
-docker-compose up -d --build
+./scripts/run_bench.sh
 ```
+- 通常のネットワーク条件下でのHTTP/2 vs HTTP/3比較
+- 出力: `logs/benchmark_YYYYMMDD_HHMMSS/`
 
-## 📊 ベンチマーク実行
-
-### 基本実行
+### 2. 高遅延・低帯域テスト
 ```bash
-docker exec grpc-client /scripts/run_bench.sh
+./scripts/run_high_latency_bandwidth_test.sh
 ```
+- 論文の仮説検証：高遅延・低帯域環境でのHTTP/3優位性
+- 出力: `logs/high_latency_bandwidth_YYYYMMDD_HHMMSS/`
 
-### テストケース
-- **理想環境**: 0ms遅延、0%損失
-- **中程度遅延**: 50ms遅延、0%損失  
-- **高遅延低損失**: 100ms遅延、1%損失
-- **高遅延高損失**: 150ms遅延、3%損失
-
-### パラメータ
-- 総リクエスト数: 10,000
-- 同時接続数: 100
-- 並列スレッド数: 20
-- 最大同時ストリーム数: 100
-
-## 📈 結果分析
-
-### 生成されるファイル
-- `logs/comparison_report.txt`: 包括的比較レポート
-- `logs/fair_comparison_report.txt`: 公平性を考慮した詳細分析
-- `logs/comparison_data.csv`: 全データのCSV形式
-- `logs/fair_comparison_data.csv`: 公平性分析データ
-
-### 主要メトリクス
-- **スループット**: 1秒あたりのリクエスト数
-- **レイテンシ**: 平均、最小、最大、標準偏差
-- **接続時間**: TCP/QUIC接続確立時間
-- **処理時間**: 接続確立後の純粋なリクエスト処理時間
-- **成功率**: エラー率とリトライ統計
-
-## 🔬 公平性の改善
-
-### 従来の問題点
-- HTTP/2とHTTP/3で接続処理が異なる（TCP vs QUIC）
-- 接続確立のオーバーヘッドが性能比較に影響
-- 実装の成熟度の違いによる不公平
-
-### 改善策
-1. **接続確立の分離**: ウォームアップ期間で接続を確立
-2. **純粋な処理時間測定**: 接続時間を除外したリクエスト処理性能
-3. **統一された負荷パラメータ**: 両プロトコルで同じ条件
-4. **統計的有意性**: 十分なサンプルサイズと信頼区間
-
-### 公平性パラメータ
-- ウォームアップリクエスト: 1,000
-- 測定リクエスト: 9,000
-- 接続安定化時間: 2秒
-
-## 🛠️ 技術スタック
-
-### プロトコル実装
-- **HTTP/2**: nginx + h2load
-- **HTTP/3**: nginx + quiche + h2load（HTTP/3対応版）
-
-### ネットワークエミュレーション
-- **tc netem**: 遅延・損失・ジッター制御
-- **Docker network**: 分離されたテスト環境
-
-### 分析ツール
-- **Python**: 統計分析とレポート生成
-- **h2load**: 負荷テストとメトリクス収集
-- **curl**: HTTP/3接続検証
-
-## 📋 使用技術
-
-### プロトコル
-- HTTP/2 over TLS
-- HTTP/3 over QUIC
-- gRPC over HTTP/2/3
-
-### ネットワーク
-- TCP (HTTP/2)
-- QUIC (HTTP/3)
-- TLS 1.3
-- ALPN (Application-Layer Protocol Negotiation)
-
-### コンテナ技術
-- Docker
-- Docker Compose
-- カスタムネットワーク
-
-### 分析・可視化
-- Python 3.7+
-- NumPy (統計計算)
-- CSV/JSON (データ形式)
-- 日本語レポート生成
-
-## 🔍 トラブルシューティング
-
-### よくある問題
-1. **HTTP/3接続失敗**: サーバーのquiche実装を確認
-2. **ネットワークエミュレーション**: tc netemの権限確認
-3. **メモリ不足**: Dockerリソース制限の調整
-
-### ログ確認
+### 3. 極端な条件テスト
 ```bash
-# サーバーログ
-docker logs grpc-server
+./scripts/run_extreme_conditions_test.sh
+```
+- 極端なネットワーク条件下での性能逆転現象の検証
+- 出力: `logs/extreme_YYYYMMDD_HHMMSS/`
 
-# ルーターログ  
-docker logs grpc-router
+## 出力ファイル構成
 
-# クライアントログ
-docker logs grpc-client
+各実験ディレクトリには以下が含まれます：
+
+### ログファイル
+- `h2_*.log`: HTTP/2ベンチマークログ
+- `h3_*.log`: HTTP/3ベンチマークログ
+
+### データファイル
+- `*_data.csv`: 測定データ（CSV形式）
+- `*_report.txt`: 詳細分析レポート
+
+### グラフファイル（必須）
+- `performance_comparison_overview.png`: 全体性能比較
+- `detailed_performance_analysis.png`: 詳細分析グラフ
+- `performance_summary_statistics.png`: 統計サマリー
+
+### サマリーレポート（必須）
+- `performance_reversal_summary.txt`: 性能逆転現象の分析
+
+## 分析スクリプト
+
+### 手動分析
+```bash
+# 基本性能分析
+python3 scripts/analyze_results.py <log_directory>
+
+# 高遅延・低帯域分析
+python3 scripts/analyze_high_latency_results.py <log_directory>
+
+# 極端な条件分析
+python3 scripts/analyze_extreme_conditions.py <log_directory>
+
+# グラフ生成
+python3 scripts/generate_performance_graphs.py <log_directory>
 ```
 
-## 📚 参考文献
+## 環境セットアップ
 
-- [HTTP/3 Specification](https://quicwg.org/base-drafts/draft-ietf-quic-http.html)
-- [QUIC Protocol](https://tools.ietf.org/html/draft-ietf-quic-transport)
-- [nginx HTTP/3 Module](https://github.com/cloudflare/quiche)
-- [h2load Documentation](https://nghttp2.org/documentation/h2load-howto.html)
+```bash
+# コンテナビルド
+docker-compose build
 
-## 📄 ライセンス
+# 環境起動
+docker-compose up -d
 
-MIT License
+# ベンチマーク実行
+./scripts/run_bench.sh
+```
 
-## 🤝 貢献
+## 重要な発見
 
-プルリクエストやイシューの報告を歓迎します。 
+### 性能逆転現象
+- **閾値**: 遅延400ms以上、帯域5Mbps以下でHTTP/3が優位
+- **衛星通信環境**: 800ms遅延、20%損失、2Mbps帯域でHTTP/3が63%優位
+- **実用的指針**: 特定の極端な条件下でのみHTTP/3が明確に優位
+
+### 論文の仮説検証結果
+✅ **再現された主張**:
+- 極端な高遅延環境でのHTTP/3優位性
+- 極低帯域環境でのHTTP/3優位性
+- 高損失環境でのHTTP/3優位性
+
+❌ **再現されなかった部分**:
+- レイテンシではHTTP/2が一貫して優位
+- 接続時間ではHTTP/2が優位
+
+## 注意事項
+
+1. **実験データの分離**: 各実験は専用ディレクトリで管理
+2. **グラフ生成の必須化**: 全ての実験で視覚的比較を実施
+3. **再現性の確保**: 条件・結果の明確な記録
+4. **公平な比較**: ウォームアップと測定フェーズの分離
+
+## ライセンス
+MIT License 
