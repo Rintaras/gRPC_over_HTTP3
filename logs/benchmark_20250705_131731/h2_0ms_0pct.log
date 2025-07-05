@@ -1,12 +1,12 @@
-=== HTTP/3 BENCHMARK RESULTS ===
+=== HTTP/2 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-07-05 11:46:02
-Delay: 100ms
-Loss: 1%
+Timestamp: 2025-07-05 13:17:36
+Delay: 0ms
+Loss: 0%
 Router IP: 172.30.0.254
 Server IP: 172.30.0.2
 Current qdisc configuration:
-qdisc netem 8008: root refcnt 9 limit 1000 delay 100ms loss 1%
+qdisc noqueue 0: root refcnt 2 
 
 === CONNECTION ESTABLISHMENT PHASE ===
 -t: warning: the number of threads is greater than hardware cores.
@@ -34,7 +34,7 @@ spawning thread #19: 5 total client(s). 50 total requests
 TLS Protocol: TLSv1.3
 Cipher: TLS_AES_128_GCM_SHA256
 Server Temp Key: X25519 253 bits
-Application protocol: h3
+Application protocol: h2
 progress: 10% done
 progress: 20% done
 progress: 30% done
@@ -46,16 +46,15 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 1.03s, 968.25 req/s, 269.69KB/s
+finished in 94.55ms, 10576.19 req/s, 3.11MB/s
 requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 278.53KB (285217) total, 210.89KB (215953) headers (space savings 26.80%), 60.55KB (62000) data
-UDP datagram: 764 sent, 659 received
+traffic: 301.37KB (308606) total, 207.96KB (212953) headers (space savings 27.81%), 58.59KB (60000) data
                      min         max         mean         sd        +/- sd
-time for request:      517us    331.80ms    110.87ms    125.60ms    62.20%
-time for connect:    77.32ms       1.02s    146.37ms    241.03ms    93.00%
-time to 1st byte:    89.68ms       1.02s    239.62ms    244.20ms    93.00%
-req/s           :       9.69      106.71       64.50       39.94    60.00%
+time for request:    11.90ms     53.77ms     27.65ms     11.59ms    66.00%
+time for connect:     2.15ms     80.52ms     39.15ms     20.40ms    59.00%
+time to 1st byte:    25.40ms     92.96ms     66.76ms     22.52ms    65.00%
+req/s           :     107.12      391.39      178.66       89.46    76.00%
 Waiting 2s for connections to stabilize...
 === MEASUREMENT PHASE ===
 -t: warning: the number of threads is greater than hardware cores.
@@ -83,27 +82,32 @@ spawning thread #19: 5 total client(s). 450 total requests
 TLS Protocol: TLSv1.3
 Cipher: TLS_AES_128_GCM_SHA256
 Server Temp Key: X25519 253 bits
-Application protocol: h3
+Application protocol: h2
 progress: 10% done
 progress: 20% done
 progress: 30% done
 progress: 40% done
+progress: 50% done
+progress: 60% done
+progress: 70% done
+progress: 80% done
+progress: 90% done
+progress: 100% done
 
-finished in 1.08s, 6791.85 req/s, 1.86MB/s
-requests: 9000 total, 9000 started, 7393 done, 7309 succeeded, 1691 failed, 1691 errored, 0 timeout
-status codes: 7310 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 2.00MB (2099408) total, 1.51MB (1578538) headers (space savings 26.80%), 442.60KB (453220) data
-UDP datagram: 1830 sent, 2454 received
+finished in 672.51ms, 13382.68 req/s, 3.89MB/s
+requests: 9000 total, 9000 started, 9000 done, 9000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 9000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 2.61MB (2740021) total, 1.83MB (1916511) headers (space savings 27.82%), 527.34KB (540000) data
                      min         max         mean         sd        +/- sd
-time for request:     1.39ms    775.22ms    285.24ms    220.67ms    67.31%
-time for connect:    81.29ms       1.02s    141.12ms    221.27ms    94.00%
-time to 1st byte:    93.61ms       1.02s    175.60ms    236.05ms    92.77%
-req/s           :       0.00      432.90      159.89      100.84    71.00%
+time for request:      660us    611.83ms    288.78ms    166.54ms    55.64%
+time for connect:     4.42ms    111.92ms     58.44ms     31.15ms    56.00%
+time to 1st byte:    14.58ms    593.92ms    296.84ms    172.39ms    60.00%
+req/s           :     134.14     4401.07      215.07      469.92    98.00%
 
 === BENCHMARK SUMMARY ===
-Protocol: HTTP/3 (confirmed)
+Protocol: HTTP/2
 Fair Comparison: Enabled
 Warmup Requests: 1000
 Measurement Requests: 9000
-End Time: 2025-07-05 11:46:06
-CSV Log: /logs/benchmark_20250705_114530/h3_100ms_1pct.csv
+End Time: 2025-07-05 13:17:39
+CSV Log: /logs/benchmark_20250705_131731/h2_0ms_0pct.csv

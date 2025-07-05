@@ -4,6 +4,8 @@
 # Tests 4 network conditions: (0/0), (50/0), (100/1), (150/3)
 # Features: Adjusted load, HTTP/3 enforcement, structured logging, network condition recording
 
+# Execute the entire benchmark inside the client container
+docker exec grpc-client bash -c '
 # タイムスタンプ付きディレクトリ作成
 NOW=$(date +"%Y%m%d_%H%M%S")
 LOG_DIR="/logs/benchmark_${NOW}"
@@ -62,7 +64,7 @@ mkdir -p $LOG_DIR
 
 # Function to get current timestamp
 get_timestamp() {
-    date '+%Y-%m-%d %H:%M:%S'
+    date "+%Y-%m-%d %H:%M:%S"
 }
 
 # Function to log network conditions
@@ -300,11 +302,11 @@ for log_file in $LOG_DIR/h*_*.log; do
     fi
 done
 
-# Generate the comparison report
-generate_comparison_report
+echo "Benchmark complete! Check the reports and graphs in $LOG_DIR"
+'
 
 # グラフ生成も必ず実行（ホスト側で実行）
 echo "Generating performance graphs..."
 python3 ./scripts/generate_performance_graphs.py $LOG_DIR
 
-echo "Benchmark complete! Check the reports and graphs in $LOG_DIR" 
+echo "Analysis & graph complete! Check the reports and graphs in $LOG_DIR" 

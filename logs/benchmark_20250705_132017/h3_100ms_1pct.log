@@ -1,12 +1,12 @@
 === HTTP/3 BENCHMARK RESULTS ===
 === NETWORK CONDITIONS ===
-Timestamp: 2025-07-05 11:45:38
-Delay: 0ms
-Loss: 0%
+Timestamp: 2025-07-05 13:20:51
+Delay: 100ms
+Loss: 1%
 Router IP: 172.30.0.254
 Server IP: 172.30.0.2
 Current qdisc configuration:
-qdisc noqueue 0: root refcnt 2 
+qdisc netem 8011: root refcnt 9 limit 1000 delay 100ms loss 1%
 
 === CONNECTION ESTABLISHMENT PHASE ===
 -t: warning: the number of threads is greater than hardware cores.
@@ -46,16 +46,16 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 1.03s, 969.62 req/s, 270.03KB/s
+finished in 1.06s, 944.12 req/s, 263.01KB/s
 requests: 1000 total, 1000 started, 1000 done, 1000 succeeded, 0 failed, 0 errored, 0 timeout
 status codes: 1000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 278.49KB (285169) total, 210.89KB (215953) headers (space savings 26.80%), 60.55KB (62000) data
-UDP datagram: 672 sent, 610 received
+traffic: 278.57KB (285259) total, 210.89KB (215947) headers (space savings 26.80%), 60.55KB (62000) data
+UDP datagram: 721 sent, 646 received
                      min         max         mean         sd        +/- sd
-time for request:     1.83ms    319.79ms    118.76ms    116.68ms    55.00%
-time for connect:    75.60ms       1.02s    144.38ms    241.22ms    93.00%
-time to 1st byte:    87.00ms       1.02s    260.47ms    237.85ms    93.00%
-req/s           :       9.72      109.68       65.31       40.26    45.00%
+time for request:      714us    339.05ms    104.81ms    136.54ms    68.50%
+time for connect:    88.17ms       1.04s    162.63ms    240.68ms    93.00%
+time to 1st byte:    99.78ms       1.05s    234.73ms    248.79ms    93.00%
+req/s           :       9.46       96.00       56.06       32.88    74.00%
 Waiting 2s for connections to stabilize...
 === MEASUREMENT PHASE ===
 -t: warning: the number of threads is greater than hardware cores.
@@ -95,21 +95,21 @@ progress: 80% done
 progress: 90% done
 progress: 100% done
 
-finished in 1.04s, 8638.39 req/s, 2.37MB/s
-requests: 9000 total, 9000 started, 9000 done, 9000 succeeded, 0 failed, 0 errored, 0 timeout
-status codes: 9000 2xx, 0 3xx, 0 4xx, 0 5xx
-traffic: 2.46MB (2584057) total, 1.85MB (1943468) headers (space savings 26.80%), 544.92KB (558000) data
-UDP datagram: 2110 sent, 2874 received
+finished in 1.26s, 4859.05 req/s, 1.33MB/s
+requests: 9000 total, 9000 started, 6120 done, 6120 succeeded, 2880 failed, 2880 errored, 0 timeout
+status codes: 6120 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 1.68MB (1757716) total, 1.26MB (1321564) headers (space savings 26.80%), 370.55KB (379440) data
+UDP datagram: 1178 sent, 2060 received
                      min         max         mean         sd        +/- sd
-time for request:      407us    771.65ms    400.93ms    235.47ms    59.29%
-time for connect:    96.11ms       1.02s    136.86ms    179.26ms    96.00%
-time to 1st byte:    99.74ms       1.02s    242.94ms    233.70ms    80.00%
-req/s           :      86.44      398.57      142.25       57.93    87.00%
+time for request:    14.33ms       1.00s    359.79ms    247.90ms    60.18%
+time for connect:   228.43ms    261.75ms    243.44ms      9.73ms    59.00%
+time to 1st byte:   247.01ms    306.17ms    271.08ms     14.37ms    69.12%
+req/s           :       0.00      224.69       79.54       63.56    52.00%
 
 === BENCHMARK SUMMARY ===
 Protocol: HTTP/3 (confirmed)
 Fair Comparison: Enabled
 Warmup Requests: 1000
 Measurement Requests: 9000
-End Time: 2025-07-05 11:45:42
-CSV Log: /logs/benchmark_20250705_114530/h3_0ms_0pct.csv
+End Time: 2025-07-05 13:20:55
+CSV Log: /logs/benchmark_20250705_132017/h3_100ms_1pct.csv

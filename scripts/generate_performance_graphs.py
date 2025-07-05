@@ -13,6 +13,7 @@ import matplotlib.patches as mpatches
 from matplotlib import rcParams
 import seaborn as sns
 from datetime import datetime
+import glob
 
 # 日本語フォント設定
 plt.rcParams['font.family'] = ['DejaVu Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Takao', 'IPAexGothic', 'IPAPGothic', 'VL PGothic', 'Noto Sans CJK JP']
@@ -481,41 +482,118 @@ def generate_summary_report(data, output_dir):
     
     print(f"サマリーレポート生成完了: {report_file}")
 
-def main():
-    """Main function"""
-    # コマンドライン引数でデータディレクトリ指定可
-    if len(sys.argv) > 1:
-        log_dir = sys.argv[1]
-    elif os.path.exists("/logs") and os.path.isdir("/logs"):
-        log_dir = "/logs"
-    elif os.path.exists("./logs") and os.path.isdir("./logs"):
-        log_dir = "./logs"
-    else:
-        print("Error: Log directory not found (/logs or ./logs)")
-        sys.exit(1)
+def load_benchmark_csvs(log_dir):
+    """通常ベンチマークのh2/h3_*.csvからデータを集約し、グラフ用データリストを返す"""
+    # h2/h3のcsvファイルをdelay/lossごとにペアで集約
+    h2_files = sorted(glob.glob(os.path.join(log_dir, 'h2_*.csv')))
+    h3_files = sorted(glob.glob(os.path.join(log_dir, 'h3_*.csv')))
+    data = []
+    def parse_case(filename):
+        # 例: h2_150ms_3pct.csv
+        base = os.path.basename(filename)
+        parts = base.split('_')
+        delay = int(parts[1].replace('ms',''))
+        loss = int(parts[2].replace('pct.csv',''))
+        return delay, loss
+    h2_map = {parse_case(f): f for f in h2_files}
+    h3_map = {parse_case(f): f for f in h3_files}
+    all_cases = sorted(set(h2_map.keys()) & set(h3_map.keys()))
+    for case in all_cases:
+        delay, loss = case
+        h2_csv = h2_map[case]
+        h3_csv = h3_map[case]
+        # h2/h3のcsvはh2loadの--log-file出力（1行目ヘッダ、2行目以降データ）
+        def extract_metrics(csvfile):
+            with open(csvfile, 'r', encoding='utf-8') as f:
+                lines = [line.strip() for line in f if line.strip()]
+                if not lines:
+                    return 0, 0, 0
+                last = lines[-1].split('\t')
+                try:
+                    value = float(last[2])
+                except Exception:
+                    value = 0
+                return value, value, value
+        h2_throughput, h2_latency, h2_connect = extract_metrics(h2_csv)
+        h3_throughput, h3_latency, h3_connect = extract_metrics(h3_csv)
+        # 優位性計算
+        throughput_adv = ((h3_throughput - h2_throughput) / h2_throughput * 100) if h2_throughput else 0
+        latency_adv = ((h2_latency - h3_latency) / h2_latency * 100) if h2_latency else 0
+        connect_adv = ((h2_connect - h3_connect) / h2_connect * 100) if h2_connect else 0
+        data.append({
+            'Delay (ms)': delay,
+            'Loss (%)': loss,
+            'Bandwidth (Mbps)': 0,  # 通常ベンチマークは帯域制限なし
+            'HTTP/2 Throughput (req/s)': h2_throughput,
+            'HTTP/3 Throughput (req/s)': h3_throughput,
+            'HTTP/2 Latency (ms)': h2_latency,
+            'HTTP/3 Latency (ms)': h3_latency,
+            'HTTP/2 Connection Time (ms)': h2_connect,
+            'HTTP/3 Connection Time (ms)': h3_connect,
+            'Throughput Advantage (%)': throughput_adv,
+            'Latency Advantage (%)': latency_adv,
+            'Connection Advantage (%)': connect_adv,
+        })
+    return data
+
+def find_latest_benchmark_dir(base_dir="./logs"):
+    """最新のベンチマークディレクトリを検出"""
+    if not os.path.exists(base_dir):
+        return None
     
-    # Load data
-    csv_file = os.path.join(log_dir, "extreme_conditions_data.csv")
-    if not os.path.exists(csv_file):
-        print(f"Error: Data file not found: {csv_file}")
-        sys.exit(1)
+    benchmark_dirs = []
+    for item in os.listdir(base_dir):
+        item_path = os.path.join(base_dir, item)
+        if os.path.isdir(item_path) and item.startswith("benchmark_"):
+            benchmark_dirs.append(item)
     
-    print("性能逆転現象のグラフ生成を開始...")
-    data = load_extreme_conditions_data(csv_file)
+    if not benchmark_dirs:
+        return None
     
-    if not data:
-        print("Error: No data loaded")
-        sys.exit(1)
-    
-    # Create graphs
-    create_performance_comparison_graphs(data, log_dir)
-    
-    print("グラフ生成完了!")
-    print(f"生成されたファイル:")
-    print(f"  • {log_dir}/performance_comparison_overview.png")
-    print(f"  • {log_dir}/detailed_performance_analysis.png")
-    print(f"  • {log_dir}/performance_summary_statistics.png")
-    print(f"  • {log_dir}/performance_reversal_summary.txt")
+    # 最新のディレクトリを返す（ファイル名順でソート）
+    latest_dir = sorted(benchmark_dirs)[-1]
+    return os.path.join(base_dir, latest_dir)
 
 if __name__ == "__main__":
-    main() 
+    if len(sys.argv) > 2:
+        # ベンチマークディレクトリ名も指定された場合
+        base_log_dir = sys.argv[1]
+        benchmark_dir = sys.argv[2]
+        log_dir = os.path.join(base_log_dir, benchmark_dir)
+    elif len(sys.argv) > 1:
+        log_dir = sys.argv[1]
+    else:
+        # 最新のベンチマークディレクトリを自動検出
+        log_dir = find_latest_benchmark_dir()
+        if log_dir is None:
+            # フォールバック: 従来の方法
+            if os.path.exists("/logs") and os.path.isdir("/logs"):
+                log_dir = "/logs"
+            elif os.path.exists("./logs") and os.path.isdir("./logs"):
+                log_dir = "./logs"
+            else:
+                print("使用方法:")
+                print("  python3 generate_performance_graphs.py <log_dir>")
+                print("  python3 generate_performance_graphs.py <base_log_dir> <benchmark_dir>")
+                print("  または、./logsディレクトリ内にbenchmark_*ディレクトリを配置")
+                print("例:")
+                print("  python3 generate_performance_graphs.py ./logs")
+                print("  python3 generate_performance_graphs.py ./logs benchmark_20250705_130609")
+                sys.exit(1)
+        else:
+            print(f"最新のベンチマークディレクトリを検出: {log_dir}")
+
+    # まずextreme_conditions_data.csvがあれば従来通り
+    csv_file = os.path.join(log_dir, "extreme_conditions_data.csv")
+    if os.path.exists(csv_file):
+        print("extreme_conditions_data.csvを検出。極端条件グラフを生成します。")
+        data = load_extreme_conditions_data(csv_file)
+    else:
+        # h2/h3_*.csvから自動集約
+        print("h2/h3_*.csvから通常ベンチマークグラフを生成します。")
+        data = load_benchmark_csvs(log_dir)
+        if not data:
+            print("Error: No benchmark CSV data found in", log_dir)
+            sys.exit(1)
+    create_performance_comparison_graphs(data, log_dir)
+    print("グラフ生成完了! 出力先:", log_dir) 
