@@ -15,6 +15,10 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-numpy \
     python3-pandas \
+    python3-matplotlib \
+    python3-seaborn \
+    fonts-noto-cjk \
+    fonts-ipafont-gothic \
     docker.io \
     autoconf \
     automake \
@@ -105,6 +109,22 @@ WORKDIR /scripts
 
 # Copy sync_time.sh
 COPY ../scripts/sync_time.sh /usr/local/bin/sync_time.sh
+RUN chmod +x /usr/local/bin/sync_time.sh
+
+# Keep container running
+CMD ["sleep", "infinity"] 
+RUN chmod +x /usr/local/bin/sync_time.sh
+
+# Keep container running
+CMD ["sleep", "infinity"] 
+RUN chmod +x /usr/local/bin/sync_time.sh
+
+# Keep container running
+CMD ["sleep", "infinity"] 
+RUN chmod +x /usr/local/bin/sync_time.sh
+
+# Keep container running
+CMD ["sleep", "infinity"] 
 RUN chmod +x /usr/local/bin/sync_time.sh
 
 # Keep container running

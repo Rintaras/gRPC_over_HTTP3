@@ -60,7 +60,18 @@ echo "    - Connection Warmup Time: ${CONNECTION_WARMUP_TIME}s"
 echo "================================================"
 
 # Create log directory
-mkdir -p $LOG_DIR
+mkdir -p "$LOG_DIR"
+
+# ベンチマークパラメータをテキストファイルに保存
+cat <<EOF > "$LOG_DIR/benchmark_params.txt"
+REQUESTS=$REQUESTS
+CONNECTIONS=$CONNECTIONS
+THREADS=$THREADS
+MAX_CONCURRENT=$MAX_CONCURRENT
+WARMUP_REQUESTS=$WARMUP_REQUESTS
+MEASUREMENT_REQUESTS=$MEASUREMENT_REQUESTS
+CONNECTION_WARMUP_TIME=$CONNECTION_WARMUP_TIME
+EOF
 
 # Function to get current timestamp
 get_timestamp() {
@@ -303,10 +314,10 @@ for log_file in $LOG_DIR/h*_*.log; do
 done
 
 echo "Benchmark complete! Check the reports and graphs in $LOG_DIR"
-'
 
-# グラフ生成も必ず実行（ホスト側で実行）
+# グラフ生成を実行
 echo "Generating performance graphs..."
-python3 ./scripts/generate_performance_graphs.py $LOG_DIR
+python3 /scripts/generate_performance_graphs.py $LOG_DIR
 
-echo "Analysis & graph complete! Check the reports and graphs in $LOG_DIR" 
+echo "Analysis & graph complete! Check the reports and graphs in $LOG_DIR"
+' 

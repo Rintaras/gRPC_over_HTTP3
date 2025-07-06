@@ -1,1 +1,0 @@
-Test Case,Delay (ms),Loss (%),Bandwidth (Mbps),HTTP/2 Throughput (req/s),HTTP/3 Throughput (req/s),HTTP/2 Latency (ms),HTTP/3 Latency (ms),HTTP/2 Connection Time (ms),HTTP/3 Connection Time (ms),Throughput Advantage (%),Latency Advantage (%),Connection Advantage (%)
