@@ -16,6 +16,7 @@ from datetime import datetime
 import glob
 import re
 import matplotlib
+import shutil
 matplotlib.rcParams['font.family'] = ['DejaVu Sans']
 matplotlib.rcParams['axes.unicode_minus'] = False
 from matplotlib.font_manager import FontProperties, findSystemFonts
@@ -525,17 +526,24 @@ def load_benchmark_csvs(log_dir):
         sys.exit(1)
     data = []
     def parse_case(filename):
-        # 例: h2_150ms_3pct.csv
+        # 例: h2_150ms_3pct.csv または h2_150ms_3pct_10mbps.csv
         base = os.path.basename(filename)
         parts = base.split('_')
         delay = int(parts[1].replace('ms',''))
-        loss = int(parts[2].replace('pct.csv',''))
-        return delay, loss
+        loss_part = parts[2]
+        if 'mbps' in base:
+            # 帯域指定あり
+            loss = int(loss_part.replace('pct',''))
+            bw = int(parts[3].replace('mbps.csv',''))
+        else:
+            loss = int(loss_part.replace('pct.csv',''))
+            bw = 0
+        return delay, loss, bw
     h2_map = {parse_case(f): f for f in h2_csvs}
     h3_map = {parse_case(f): f for f in h3_csvs}
     all_cases = sorted(set(h2_map.keys()) & set(h3_map.keys()))
     for case in all_cases:
-        delay, loss = case
+        delay, loss, bw = case
         h2_csv = h2_map[case]
         h3_csv = h3_map[case]
         # h2/h3のcsvはh2loadの--log-file出力（1行目ヘッダ、2行目以降データ）
@@ -578,7 +586,7 @@ def load_benchmark_csvs(log_dir):
         data.append({
             'Delay (ms)': delay,
             'Loss (%)': loss,
-            'Bandwidth (Mbps)': 0,  # 通常ベンチマークは帯域制限なし
+            'Bandwidth (Mbps)': bw,
             'HTTP/2 Throughput (req/s)': h2_throughput,
             'HTTP/3 Throughput (req/s)': h3_throughput,
             'HTTP/2 Latency (ms)': h2_latency,
@@ -794,12 +802,13 @@ def create_network_conditions_info(data, output_dir):
     plt.tight_layout()
     plt.subplots_adjust(top=0.92)
     
-    # 保存
+    # 保存前にCanvasを明示的に描画してから両方保存
+    fig.canvas.draw()
     output_file1 = os.path.join(output_dir, 'network_conditions_info.png')
     output_file2 = os.path.join(output_dir, 'test_conditions_and_network_environment.png')
     plt.savefig(output_file1, dpi=300, bbox_inches='tight')
-    plt.savefig(output_file2, dpi=300, bbox_inches='tight')
     plt.close()
+    shutil.copyfile(output_file1, output_file2)
     print(f"Network Conditions Information Graph Generation Completed: {output_file1} および {output_file2}")
 
 def load_benchmark_params(log_dir):

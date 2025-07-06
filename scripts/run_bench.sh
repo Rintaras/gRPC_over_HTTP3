@@ -4,6 +4,12 @@
 # Tests 4 network conditions: (0/0), (50/0), (100/1), (150/3)
 # Features: Adjusted load, HTTP/3 enforcement, structured logging, network condition recording
 
+echo "================================================"
+echo "HTTP/2 vs HTTP/3 Performance Benchmark"
+echo "================================================"
+echo "ベンチマーク開始: $(date)"
+echo "================================================"
+
 # Execute the entire benchmark inside the client container
 docker exec grpc-client bash -c '
 # タイムスタンプ付きディレクトリ作成
@@ -314,10 +320,19 @@ for log_file in $LOG_DIR/h*_*.log; do
 done
 
 echo "Benchmark complete! Check the reports and graphs in $LOG_DIR"
+'
 
-# グラフ生成を実行
-echo "Generating performance graphs..."
-python3 /scripts/generate_performance_graphs.py $LOG_DIR
+echo "================================================"
+echo "ベンチマーク完了: $(date)"
+echo "================================================"
 
-echo "Analysis & graph complete! Check the reports and graphs in $LOG_DIR"
-' 
+# ホスト側で最新のベンチマークディレクトリを取得してグラフ生成
+LATEST_LOG_DIR=$(ls -1td logs/benchmark_* | head -n1)
+echo "[ホスト] グラフ自動生成: python3 scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
+python3 scripts/generate_performance_graphs.py "$LATEST_LOG_DIR"
+
+echo "================================================"
+echo "完全自動化完了: $(date)"
+echo "ベンチマーク + グラフ生成が正常に完了しました"
+echo "結果: $LATEST_LOG_DIR"
+echo "================================================" 
