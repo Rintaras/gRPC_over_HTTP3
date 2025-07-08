@@ -24,10 +24,10 @@ ROUTER_IP="172.30.0.254"
 
 # Test cases: (delay_ms, loss_percent)
 declare -a test_cases=(
-    "0 0"    # 理想環境: 0ms遅延、0%損失
-    "50 0"   # 中程度遅延: 50ms遅延、0%損失
-    "100 1"  # 高遅延低損失: 100ms遅延、1%損失
-    "150 3"  # 高遅延高損失: 150ms遅延、3%損失
+    "50 3"    # 理想環境: 0ms遅延、0%損失
+    "100 3"   # 中程度遅延: 50ms遅延、0%損失
+    "150 3"  # 高遅延低損失: 100ms遅延、1%損失
+    "200 3"  # 高遅延高損失: 150ms遅延、3%損失
 )
 
 # Benchmark parameters (unified for all protocols)
@@ -366,55 +366,6 @@ else
     echo "手動でグラフ生成を実行してください:"
     echo "$PYTHON_CMD scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
 fi
-
-echo "================================================"
-echo "完全自動化完了: $(date)"
-echo "ベンチマーク + グラフ生成が正常に完了しました"
-echo "結果: $LATEST_LOG_DIR"
-echo "================================================"
-
-# === 4区間のネットワーク統計取得 ===
-echo "[ホスト] 4区間ネットワーク統計を取得中..."
-
-# クライアント→ルーター
-# クライアントからルーターへのping
-( docker exec grpc-client ping -c 10 172.30.0.254 > "$LATEST_LOG_DIR/ping_client_to_router.txt" 2>&1 ) &
-# クライアント側のip統計
-( docker exec grpc-client ip -s link show eth0 > "$LATEST_LOG_DIR/ip_client_eth0.txt" 2>&1 ) &
-# ルーター側のip統計
-( docker exec grpc-router ip -s link show eth0 > "$LATEST_LOG_DIR/ip_router_eth0.txt" 2>&1 ) &
-
-# ルーター→サーバー
-# ルーターからサーバーへのping
-( docker exec grpc-router ping -c 10 172.30.0.2 > "$LATEST_LOG_DIR/ping_router_to_server.txt" 2>&1 ) &
-# サーバー側のip統計
-( docker exec grpc-server ip -s link show eth0 > "$LATEST_LOG_DIR/ip_server_eth0.txt" 2>&1 ) &
-
-# サーバー→ルーター
-# サーバーからルーターへのping
-( docker exec grpc-server ping -c 10 172.30.0.254 > "$LATEST_LOG_DIR/ping_server_to_router.txt" 2>&1 ) &
-
-# ルーター→クライアント
-# ルーターからクライアントへのping
-( docker exec grpc-router ping -c 10 172.30.0.3 > "$LATEST_LOG_DIR/ping_router_to_client.txt" 2>&1 ) &
-# クライアント側のip統計（再取得）
-( docker exec grpc-client ip -s link show eth0 > "$LATEST_LOG_DIR/ip_client_eth0_after.txt" 2>&1 ) &
-
-wait
-echo "[ホスト] 4区間ネットワーク統計の取得が完了しました。"
-
-# === 4区間ネットワーク統計の可視化 ===
-echo "[ホスト] 4区間ネットワーク統計の可視化を実行..."
-python3 scripts/visualize_network_stats.py "$LATEST_LOG_DIR"
-
-echo "================================================"
-echo "完全自動化完了: $(date)"
-echo "ベンチマーク + グラフ生成が正常に完了しました"
-echo "結果: $LATEST_LOG_DIR"
-echo "================================================"
-
-# === ルーター全インターフェース統計を取得 ===
-docker exec grpc-router ip -s link show > "$LATEST_LOG_DIR/ip_router_all.txt"
 
 echo "================================================"
 echo "完全自動化完了: $(date)"

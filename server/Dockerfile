@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y \
     automake \
     libtool \
     tzdata \
+    iputils-ping \
+    iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust with latest version

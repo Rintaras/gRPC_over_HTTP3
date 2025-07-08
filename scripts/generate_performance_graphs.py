@@ -259,18 +259,18 @@ def create_detailed_analysis_graphs(data, output_dir):
     
     # Create detailed analysis figure
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('HTTP/3 vs HTTP/2 Performance Reversal Phenomenon Detailed Analysis', fontsize=16, fontweight='bold')
+    fig.suptitle('HTTP/3 vs HTTP/2 性能逆転現象 詳細分析', fontsize=16, fontweight='bold', fontproperties=jp_font)
     
     # 1. Throughput advantage trend
     ax1 = axes[0, 0]
     ax1.plot(delays, throughput_advantage, 'o-', linewidth=2, markersize=8, 
-             color='#2E8B57', label='Throughput Advantage', alpha=0.7)
-    ax1.axhline(y=0, color='red', linestyle='--', alpha=0.7, label='Equilibrium Line')
+             color='#2E8B57', label='スループット優位性', alpha=0.7)
+    ax1.axhline(y=0, color='red', linestyle='--', alpha=0.7, label='均衡ライン')
     ax1.set_xlabel('遅延 (ms)', fontproperties=jp_font)
-    ax1.set_ylabel('HTTP/3 Advantage (%)', fontproperties=jp_font)
-    ax1.set_title('Delay and Throughput Advantage Relationship', fontproperties=jp_font)
+    ax1.set_ylabel('HTTP/3優位性 (%)', fontproperties=jp_font)
+    ax1.set_title('遅延とスループット優位性の関係', fontproperties=jp_font)
     ax1.grid(True, alpha=0.3)
-    ax1.legend()
+    ax1.legend(prop=jp_font)
     
     # Add annotations for key points
     for i, (delay, adv) in enumerate(zip(delays, throughput_advantage)):
@@ -290,14 +290,14 @@ def create_detailed_analysis_graphs(data, output_dir):
     scatter = ax2.scatter(bandwidths, throughput_advantage, c=delays, 
                          s=100, cmap='viridis', alpha=0.7)
     ax2.axhline(y=0, color='red', linestyle='--', alpha=0.7)
-    ax2.set_xlabel('Bandwidth (Mbps)', fontproperties=jp_font)
-    ax2.set_ylabel('HTTP/3 Advantage (%)', fontproperties=jp_font)
-    ax2.set_title('Bandwidth and Throughput Advantage Relationship', fontproperties=jp_font)
+    ax2.set_xlabel('帯域幅 (Mbps)', fontproperties=jp_font)
+    ax2.set_ylabel('HTTP/3優位性 (%)', fontproperties=jp_font)
+    ax2.set_title('帯域幅とスループット優位性の関係', fontproperties=jp_font)
     ax2.grid(True, alpha=0.3)
     
     # Add colorbar
     cbar = plt.colorbar(scatter, ax=ax2)
-    cbar.set_label('Delay (ms)', fontproperties=jp_font)
+    cbar.set_label('遅延 (ms)', fontproperties=jp_font)
     
     # 3. Performance reversal threshold analysis
     ax3 = axes[1, 0]
@@ -318,16 +318,16 @@ def create_detailed_analysis_graphs(data, output_dir):
     
     bars = ax3.bar(range(len(delays)), throughput_advantage, color=colors, alpha=0.8)
     ax3.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-    ax3.set_xlabel('Test Case', fontproperties=jp_font)
-    ax3.set_ylabel('HTTP/3 Advantage (%)', fontproperties=jp_font)
-    ax3.set_title('Performance Reversal Threshold Analysis', fontproperties=jp_font)
+    ax3.set_xlabel('テストケース', fontproperties=jp_font)
+    ax3.set_ylabel('HTTP/3優位性 (%)', fontproperties=jp_font)
+    ax3.set_title('性能逆転閾値分析', fontproperties=jp_font)
     ax3.set_xticks(range(len(delays)))
     ax3.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], rotation=45)
     ax3.grid(True, alpha=0.3)
     
     # Add threshold line
-    ax3.axvline(x=2.5, color='red', linestyle='--', alpha=0.7, label='Estimated Threshold')
-    ax3.legend()
+    ax3.axvline(x=2.5, color='red', linestyle='--', alpha=0.7, label='推定閾値')
+    ax3.legend(prop=jp_font)
     
     # 4. Comprehensive performance matrix
     ax4 = axes[1, 1]
@@ -357,12 +357,12 @@ def create_detailed_analysis_graphs(data, output_dir):
     ax4.set_xticks(range(len(delays)))
     ax4.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], rotation=45)
     ax4.set_yticks(range(3))
-    ax4.set_yticklabels(['Throughput', 'Latency', 'Connection Time'], fontweight='bold', fontproperties=jp_font)
-    ax4.set_title('Performance Comparison Matrix\n(Green=HTTP/3 Advantage, Red=HTTP/2 Advantage)', fontproperties=jp_font)
+    ax4.set_yticklabels(['スループット', 'レイテンシ', '接続時間'], fontweight='bold', fontproperties=jp_font)
+    ax4.set_title('性能比較マトリクス\n(緑=HTTP/3優位、赤=HTTP/2優位)', fontproperties=jp_font)
     
     # Add colorbar
     cbar2 = plt.colorbar(im, ax=ax4)
-    cbar2.set_label('HTTP/3 Advantage (%)', fontproperties=jp_font)
+    cbar2.set_label('HTTP/3優位性 (%)', fontproperties=jp_font)
     
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'detailed_performance_analysis.png'), 
@@ -386,28 +386,28 @@ def create_summary_statistics(data, output_dir):
     
     # Create summary figure
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
-    fig.suptitle('Performance Reversal Phenomenon Statistical Analysis', fontsize=16, fontweight='bold')
+    fig.suptitle('性能逆転現象の統計分析', fontsize=16, fontweight='bold', fontproperties=jp_font)
     
     # 1. Advantage distribution
     ax1 = axes[0]
-    categories = ['HTTP/3 Advantage', 'HTTP/2 Advantage']
+    categories = ['HTTP/3優位', 'HTTP/2優位']
     counts = [len(h3_advantage_conditions), len(h2_advantage_conditions)]
     colors = ['#2E8B57', '#CD5C5C']
     
     bars = ax1.bar(categories, counts, color=colors, alpha=0.8)
-    ax1.set_ylabel('Test Case Count', fontproperties=jp_font)
-    ax1.set_title('Advantage Distribution', fontproperties=jp_font)
+    ax1.set_ylabel('テストケース数', fontproperties=jp_font)
+    ax1.set_title('優位性分布', fontproperties=jp_font)
     
     # Add value labels
     for bar, count in zip(bars, counts):
         height = bar.get_height()
         ax1.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                f'{count} Cases', ha='center', va='bottom', fontweight='bold', fontproperties=jp_font)
+                f'{count}件', ha='center', va='bottom', fontweight='bold', fontproperties=jp_font)
     
     # 2. Performance metrics summary
     ax2 = axes[1]
     
-    metrics = ['Throughput', 'Latency', 'Connection Time']
+    metrics = ['スループット', 'レイテンシ', '接続時間']
     avg_advantages = [
         np.mean(throughput_advantages),
         np.mean(latency_advantages),
@@ -417,8 +417,8 @@ def create_summary_statistics(data, output_dir):
     colors = ['green' if adv > 0 else 'red' for adv in avg_advantages]
     bars = ax2.bar(metrics, avg_advantages, color=colors, alpha=0.8)
     ax2.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-    ax2.set_ylabel('Average Advantage (%)', fontproperties=jp_font)
-    ax2.set_title('Average Performance Comparison', fontproperties=jp_font)
+    ax2.set_ylabel('平均優位性 (%)', fontproperties=jp_font)
+    ax2.set_title('平均性能比較', fontproperties=jp_font)
     ax2.grid(True, alpha=0.3)
     
     # Add value labels
@@ -832,16 +832,68 @@ def load_benchmark_params(log_dir):
     return params
 
 if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if not a.startswith('--')]
-    if len(args) == 0:
-        log_dir = find_latest_benchmark_dir(base_dir='/logs')
-        if log_dir is None:
-            print("Error: Benchmark directory not found. Please create benchmark_* directory under '/logs'.")
+    try:
+        # 必要なモジュールのインポート確認
+        required_modules = ['numpy', 'matplotlib', 'seaborn', 'pandas']
+        missing_modules = []
+        
+        for module in required_modules:
+            try:
+                __import__(module)
+            except ImportError:
+                missing_modules.append(module)
+        
+        if missing_modules:
+            print(f"Error: Missing required modules: {', '.join(missing_modules)}")
+            print("Attempting to install missing modules...")
+            
+            import subprocess
+            import sys
+            
+            try:
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user'] + missing_modules)
+                print("Modules installed successfully. Retrying...")
+                # モジュールを再インポート
+                for module in missing_modules:
+                    __import__(module)
+            except subprocess.CalledProcessError:
+                print("Failed to install modules automatically.")
+                print("Please install manually: pip3 install --user numpy matplotlib seaborn pandas")
+                sys.exit(1)
+        
+        args = [a for a in sys.argv[1:] if not a.startswith('--')]
+        if len(args) == 0:
+            log_dir = find_latest_benchmark_dir(base_dir='/logs')
+            if log_dir is None:
+                print("Error: Benchmark directory not found. Please create benchmark_* directory under '/logs'.")
+                sys.exit(1)
+        elif len(args) == 1:
+            log_dir = args[0]
+        else:
+            print("Usage: python3 generate_performance_graphs.py <log_dir>")
             sys.exit(1)
-    elif len(args) == 1:
-        log_dir = args[0]
-    else:
-        print("Usage: python3 generate_performance_graphs.py <log_dir>")
+        
+        # ログディレクトリの存在確認
+        if not os.path.exists(log_dir):
+            print(f"Error: Log directory '{log_dir}' does not exist.")
+            sys.exit(1)
+        
+        # 必要なファイルの存在確認
+        csv_files = [f for f in os.listdir(log_dir) if f.endswith('.csv')]
+        if not csv_files:
+            print(f"Error: No CSV files found in '{log_dir}'")
+            sys.exit(1)
+        
+        print(f"[DEBUG] load_benchmark_csvs received log_dir: {log_dir}")
+        generate_graphs(log_dir)
+        print("Graph generation completed! Output directory:", log_dir)
+        
+    except ImportError as e:
+        print(f"Error: Required module not found: {e}")
+        print("Please install required packages: pip3 install --user numpy matplotlib seaborn pandas")
         sys.exit(1)
-    generate_graphs(log_dir)
-    print("Graph generation completed! Output directory:", log_dir) 
+    except Exception as e:
+        print(f"Error during graph generation: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1) 

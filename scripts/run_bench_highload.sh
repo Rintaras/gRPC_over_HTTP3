@@ -134,7 +134,44 @@ ls -la $LOG_DIR/h*_*.log
 # ホスト側でグラフ生成
 echo "[ホスト] グラフ自動生成: python3 scripts/generate_performance_graphs.py"
 LATEST_LOG_DIR=$(ls -1td logs/benchmark_highload_* | head -n1)
-python3 scripts/generate_performance_graphs.py "$LATEST_LOG_DIR"
+
+# グラフ生成の実行（エラーハンドリング付き）
+# Python環境の確認とパッケージインストール
+echo "[ホスト] Python環境確認中..."
+
+# 複数のPythonパスを試行
+PYTHON_PATHS=(
+    "/Users/root1/.pyenv/versions/3.11.8/bin/python3"
+    "python3"
+    "/usr/bin/python3"
+    "/usr/local/bin/python3"
+)
+
+PYTHON_CMD=""
+for python_path in "${PYTHON_PATHS[@]}"; do
+    if $python_path -c "import numpy, matplotlib, seaborn, pandas" 2>/dev/null; then
+        PYTHON_CMD="$python_path"
+        echo "[ホスト] 使用するPython: $python_path"
+        break
+    fi
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo "[ホスト] 必要なパッケージをインストール中..."
+    python3 -m pip install --user numpy matplotlib seaborn pandas
+    PYTHON_CMD="python3"
+fi
+
+if $PYTHON_CMD scripts/generate_performance_graphs.py "$LATEST_LOG_DIR"; then
+    echo "✅ グラフ生成が正常に完了しました"
+    echo "生成されたグラフファイル:"
+    ls -la "$LATEST_LOG_DIR"/*.png 2>/dev/null || echo "グラフファイルが見つかりません"
+else
+    echo "❌ グラフ生成でエラーが発生しました"
+    echo "手動でグラフ生成を実行してください:"
+    echo "$PYTHON_CMD scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
+fi
+
 echo "================================================"
 echo "高負荷ベンチマーク + グラフ生成 完了: $(date)"
 echo "結果: $LATEST_LOG_DIR"

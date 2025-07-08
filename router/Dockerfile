@@ -6,6 +6,7 @@ ENV TZ=Asia/Tokyo
 RUN apt-get update && apt-get install -y \
     iproute2 \
     tzdata \
+    iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # Create scripts directory and copy scripts
