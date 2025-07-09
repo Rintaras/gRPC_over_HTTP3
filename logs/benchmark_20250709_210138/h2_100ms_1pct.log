@@ -1,0 +1,114 @@
+=== HTTP/2 BENCHMARK RESULTS ===
+=== NETWORK CONDITIONS ===
+Timestamp: 2025-07-09 21:05:09
+Delay: 100ms
+Loss: 1%
+Router IP: 172.30.0.254
+Server IP: 172.30.0.2
+Current qdisc configuration:
+qdisc netem 1: root refcnt 9 limit 1000 delay 150ms loss 1%
+qdisc tbf 10: parent 1:1 rate 600Mbit burst 4050b lat 400ms 
+
+=== CONNECTION ESTABLISHMENT PHASE ===
+-t: warning: the number of threads is greater than hardware cores.
+starting benchmark...
+spawning thread #0: 5 total client(s). 2000 total requests
+spawning thread #1: 5 total client(s). 2000 total requests
+spawning thread #2: 5 total client(s). 2000 total requests
+spawning thread #3: 5 total client(s). 2000 total requests
+spawning thread #4: 5 total client(s). 2000 total requests
+spawning thread #5: 5 total client(s). 2000 total requests
+spawning thread #6: 5 total client(s). 2000 total requests
+spawning thread #7: 5 total client(s). 2000 total requests
+spawning thread #8: 5 total client(s). 2000 total requests
+spawning thread #9: 5 total client(s). 2000 total requests
+spawning thread #10: 5 total client(s). 2000 total requests
+spawning thread #11: 5 total client(s). 2000 total requests
+spawning thread #12: 5 total client(s). 2000 total requests
+spawning thread #13: 5 total client(s). 2000 total requests
+spawning thread #14: 5 total client(s). 2000 total requests
+spawning thread #15: 5 total client(s). 2000 total requests
+spawning thread #16: 5 total client(s). 2000 total requests
+spawning thread #17: 5 total client(s). 2000 total requests
+spawning thread #18: 5 total client(s). 2000 total requests
+spawning thread #19: 5 total client(s). 2000 total requests
+TLS Protocol: TLSv1.3
+Cipher: TLS_AES_128_GCM_SHA256
+Server Temp Key: X25519 253 bits
+Application protocol: h2
+progress: 10% done
+progress: 20% done
+progress: 30% done
+progress: 40% done
+progress: 50% done
+progress: 60% done
+progress: 70% done
+progress: 80% done
+progress: 90% done
+progress: 100% done
+
+finished in 486.89ms, 82153.91 req/s, 23.82MB/s
+requests: 40000 total, 40000 started, 40000 done, 40000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 40000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 11.60MB (12162531) total, 8.12MB (8517878) headers (space savings 27.81%), 2.29MB (2400000) data
+                     min         max         mean         sd        +/- sd
+time for request:      970us    109.25ms     90.29ms     18.85ms    92.86%
+time for connect:     1.84ms     96.42ms     47.43ms     26.90ms    58.00%
+time to 1st byte:    21.07ms    193.07ms    120.96ms     49.80ms    60.00%
+req/s           :     830.68     2850.43     1005.54      228.55    93.00%
+Waiting 5s for connections to stabilize...
+=== MEASUREMENT PHASE ===
+-t: warning: the number of threads is greater than hardware cores.
+starting benchmark...
+spawning thread #0: 5 total client(s). 18000 total requests
+spawning thread #1: 5 total client(s). 18000 total requests
+spawning thread #2: 5 total client(s). 18000 total requests
+spawning thread #3: 5 total client(s). 18000 total requests
+spawning thread #4: 5 total client(s). 18000 total requests
+spawning thread #5: 5 total client(s). 18000 total requests
+spawning thread #6: 5 total client(s). 18000 total requests
+spawning thread #7: 5 total client(s). 18000 total requests
+spawning thread #8: 5 total client(s). 18000 total requests
+spawning thread #9: 5 total client(s). 18000 total requests
+spawning thread #10: 5 total client(s). 18000 total requests
+spawning thread #11: 5 total client(s). 18000 total requests
+spawning thread #12: 5 total client(s). 18000 total requests
+spawning thread #13: 5 total client(s). 18000 total requests
+spawning thread #14: 5 total client(s). 18000 total requests
+spawning thread #15: 5 total client(s). 18000 total requests
+spawning thread #16: 5 total client(s). 18000 total requests
+spawning thread #17: 5 total client(s). 18000 total requests
+spawning thread #18: 5 total client(s). 18000 total requests
+spawning thread #19: 5 total client(s). 18000 total requests
+TLS Protocol: TLSv1.3
+Cipher: TLS_AES_128_GCM_SHA256
+Server Temp Key: X25519 253 bits
+Application protocol: h2
+progress: 10% done
+progress: 20% done
+progress: 30% done
+progress: 40% done
+progress: 50% done
+progress: 60% done
+progress: 70% done
+progress: 80% done
+progress: 90% done
+progress: 100% done
+
+finished in 24.71s, 14566.57 req/s, 4.23MB/s
+requests: 360000 total, 360000 started, 360000 done, 360000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 360000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 104.54MB (109614480) total, 73.29MB (76849580) headers (space savings 27.78%), 20.60MB (21600000) data
+                     min         max         mean         sd        +/- sd
+time for request:      415us    755.40ms    342.17ms    197.35ms    57.98%
+time for connect:     3.48ms    121.26ms     63.74ms     31.69ms    60.00%
+time to 1st byte:    41.47ms    704.38ms    327.88ms    196.72ms    61.00%
+req/s           :     145.68      147.33      146.16        0.51    75.00%
+
+=== BENCHMARK SUMMARY ===
+Protocol: HTTP/2
+Fair Comparison: Enabled
+Warmup Requests: 40000
+Measurement Requests: 360000
+End Time: 2025-07-09 21:05:40
+CSV Log: /logs/benchmark_20250709_210138/h2_100ms_1pct.csv

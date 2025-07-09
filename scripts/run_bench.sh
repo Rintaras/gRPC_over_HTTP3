@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Improved benchmark script for HTTP/2 vs HTTP/3 performance comparison
+# Improved benchmark script for HTTP/2 vs HTTP/3 performance comparison (長時間測定版)
 # Tests 4 network conditions: (0/0), (50/0), (100/1), (150/3)
-# Features: Adjusted load, HTTP/3 enforcement, structured logging, network condition recording
+# Features: Long measurement time, increased connections, extended timeouts, protocol separation
 
 echo "================================================"
 echo "HTTP/2 vs HTTP/3 Performance Benchmark"
@@ -31,16 +31,16 @@ declare -a test_cases=(
 )
 
 # Benchmark parameters (unified for all protocols)
-REQUESTS=10000       # 総リクエスト数
-CONNECTIONS=100      # 同時接続数
-THREADS=20          # 並列スレッド数
-MAX_CONCURRENT=100  # 最大同時ストリーム数
+REQUESTS=200000       # 総リクエスト数（適切なレベルに調整）
+CONNECTIONS=100       # 同時接続数（安定性のため調整）
+THREADS=20           # 並列スレッド数（調整）
+MAX_CONCURRENT=100   # 最大同時ストリーム数（調整）
 REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # サイズ: 約150バイト
 
 # Fair comparison parameters
-WARMUP_REQUESTS=1000  # 接続確立後のウォームアップ用リクエスト数
-MEASUREMENT_REQUESTS=9000  # 実際の測定用リクエスト数
-CONNECTION_WARMUP_TIME=2  # 接続確立後の待機時間（秒）
+WARMUP_REQUESTS=20000  # 接続確立後のウォームアップ用リクエスト数（調整）
+MEASUREMENT_REQUESTS=180000  # 実際の測定用リクエスト数（調整）
+CONNECTION_WARMUP_TIME=5  # 接続確立後の待機時間（秒）（増加）
 
 # Calculate derived parameters
 REQUESTS_PER_CONNECTION=$((REQUESTS / CONNECTIONS))
@@ -63,6 +63,11 @@ echo "  Fair Comparison: Enabled"
 echo "    - Warmup Requests: $WARMUP_REQUESTS"
 echo "    - Measurement Requests: $MEASUREMENT_REQUESTS"
 echo "    - Connection Warmup Time: ${CONNECTION_WARMUP_TIME}s"
+echo "  Long Measurement: Enabled"
+echo "    - Estimated measurement time: ~3-5 minutes per test case"
+echo "    - Protocol separation: 30 seconds between HTTP/2 and HTTP/3"
+echo "    - Extended timeouts: 60 seconds for connections"
+echo "    - Optimized for server capacity and stability"
 echo "================================================"
 
 # Create log directory
@@ -127,8 +132,8 @@ run_http2_bench() {
     # Phase 1: Establish connections with warmup requests
     h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
         --header "User-Agent: h2load-benchmark-warmup" \
         --data "$temp_data_file" \
         https://$SERVER_IP/echo >> $log_file 2>&1
@@ -140,8 +145,8 @@ run_http2_bench() {
     # Phase 2: Measure performance with established connections
     h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
         --header "User-Agent: h2load-benchmark-measurement" \
         --data "$temp_data_file" \
         --log-file "$csv_file" \
@@ -188,8 +193,8 @@ run_http3_bench() {
     # Phase 1: Establish connections with warmup requests
     h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
         --header "User-Agent: h2load-benchmark-warmup" \
         --data "$temp_data_file" \
         --alpn-list=h3,h2 \
@@ -202,8 +207,8 @@ run_http3_bench() {
     # Phase 2: Measure performance with established connections
     h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
-        --connection-active-timeout 30 \
-        --connection-inactivity-timeout 30 \
+        --connection-active-timeout 60 \
+        --connection-inactivity-timeout 60 \
         --header "User-Agent: h2load-benchmark-measurement" \
         --data "$temp_data_file" \
         --alpn-list=h3,h2 \
@@ -279,7 +284,7 @@ for test_case in "${test_cases[@]}"; do
     
     # Wait for network to stabilize
     echo "Waiting for network to stabilize..."
-    sleep 5
+    sleep 10
     
     # Verify HTTP/3 is working before benchmark
     if ! verify_http3; then
@@ -289,6 +294,9 @@ for test_case in "${test_cases[@]}"; do
     # Run benchmarks sequentially to avoid interference
     echo "Running benchmarks..."
     run_http2_bench $delay $loss
+    
+    echo "Waiting 30 seconds between protocols..."
+    sleep 30
     
     # Run HTTP/3 benchmark with h2load
     run_http3_bench $delay $loss
@@ -331,40 +339,17 @@ LATEST_LOG_DIR=$(ls -1td logs/benchmark_* | head -n1)
 echo "[ホスト] グラフ自動生成: python3 scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
 
 # グラフ生成の実行（エラーハンドリング付き）
-# Python環境の確認とパッケージインストール
-echo "[ホスト] Python環境確認中..."
+echo "[ホスト] グラフ生成を開始..."
 
-# 複数のPythonパスを試行
-PYTHON_PATHS=(
-    "/Users/root1/.pyenv/versions/3.11.8/bin/python3"
-    "python3"
-    "/usr/bin/python3"
-    "/usr/local/bin/python3"
-)
-
-PYTHON_CMD=""
-for python_path in "${PYTHON_PATHS[@]}"; do
-    if $python_path -c "import numpy, matplotlib, seaborn, pandas" 2>/dev/null; then
-        PYTHON_CMD="$python_path"
-        echo "[ホスト] 使用するPython: $python_path"
-        break
-    fi
-done
-
-if [ -z "$PYTHON_CMD" ]; then
-    echo "[ホスト] 必要なパッケージをインストール中..."
-    python3 -m pip install --user numpy matplotlib seaborn pandas
-    PYTHON_CMD="python3"
-fi
-
-if $PYTHON_CMD scripts/generate_performance_graphs.py "$LATEST_LOG_DIR"; then
+# グラフ生成を実行
+if source venv/bin/activate && python3 scripts/generate_performance_graphs.py "$LATEST_LOG_DIR"; then
     echo "✅ グラフ生成が正常に完了しました"
     echo "生成されたグラフファイル:"
     ls -la "$LATEST_LOG_DIR"/*.png 2>/dev/null || echo "グラフファイルが見つかりません"
 else
     echo "❌ グラフ生成でエラーが発生しました"
     echo "手動でグラフ生成を実行してください:"
-    echo "$PYTHON_CMD scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
+    echo "source venv/bin/activate && python3 scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
 fi
 
 echo "================================================"

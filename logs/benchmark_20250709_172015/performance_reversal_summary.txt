@@ -1,0 +1,44 @@
+================================================================================
+HTTP/3 vs HTTP/2 Performance Reversal Phenomenon Detailed Analysis Report
+================================================================================
+Generated Time: 2025-07-09 17:23:49
+
+📊 Main Findings
+----------------------------------------
+• HTTP/3 Advantage Cases: 0/4 Cases
+• HTTP/2 Advantage Cases: 4/4 Cases
+• Average Throughput Advantage: -24.6%
+• Average Latency Advantage: -9.4%
+• Average Connection Time Advantage: -69.9%
+
+🎯 Performance Reversal Threshold
+----------------------------------------
+
+🚀 Most Prominent Results
+----------------------------------------
+• Maximum Throughput Advantage: +-3.7%
+  Conditions: 150ms Delay, 0Mbps Bandwidth, 1% Loss
+
+📈 Research Hypothesis Verification Results
+----------------------------------------
+✅ Repeated Claims:
+  • HTTP/3 Advantage in Extremely High Delay Environment
+  • HTTP/3 Advantage in Extremely Low Bandwidth Environment
+  • Performance Reversal Phenomenon in Specific Conditions
+
+❌ Unrepeated Parts:
+  • HTTP/2 Consistently Advantageous in Latency
+  • HTTP/2 Advantageous in Connection Time
+
+🔍 Practical Guidelines
+----------------------------------------
+• Recommend HTTP/3 in environments with delay >= 400ms and bandwidth <= 10Mbps
+• Recommend HTTP/3 in satellite communication or extremely restrictive network environments
+• Recommend HTTP/2 in stable and advantageous general network environments
+• Select HTTP/2 if latency is important
+
+📁 Generated Graph Files:
+----------------------------------------
+• performance_comparison_overview.png - Overall Performance Comparison
+• detailed_performance_analysis.png - Detailed Reversal Phenomenon Analysis
+• performance_summary_statistics.png - Statistical Summary

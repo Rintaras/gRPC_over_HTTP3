@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+print("HEAD")
 """
 Performance visualization script for HTTP/3 vs HTTP/2 comparison
 Shows the performance reversal phenomenon under different network conditions
@@ -83,23 +84,33 @@ def create_performance_comparison_graphs(data, output_dir):
     # Sort data by delay for better visualization
     data.sort(key=lambda x: x['Delay (ms)'])
     
-    # Extract data for plotting
-    delays = [row['Delay (ms)'] for row in data]
-    bandwidths = [row['Bandwidth (Mbps)'] for row in data]
-    losses = [row['Loss (%)'] for row in data]
+    # Extract data for plotting (高速化のため一度に抽出)
+    delays = []
+    bandwidths = []
+    losses = []
+    h2_throughput = []
+    h3_throughput = []
+    h2_latency = []
+    h3_latency = []
+    h2_connection = []
+    h3_connection = []
+    throughput_advantage = []
+    latency_advantage = []
+    connection_advantage = []
     
-    h2_throughput = [row['HTTP/2 Throughput (req/s)'] for row in data]
-    h3_throughput = [row['HTTP/3 Throughput (req/s)'] for row in data]
-    
-    h2_latency = [row['HTTP/2 Latency (ms)'] for row in data]
-    h3_latency = [row['HTTP/3 Latency (ms)'] for row in data]
-    
-    h2_connection = [row['HTTP/2 Connection Time (ms)'] for row in data]
-    h3_connection = [row['HTTP/3 Connection Time (ms)'] for row in data]
-    
-    throughput_advantage = [row['Throughput Advantage (%)'] for row in data]
-    latency_advantage = [row['Latency Advantage (%)'] for row in data]
-    connection_advantage = [row['Connection Advantage (%)'] for row in data]
+    for row in data:
+        delays.append(row['Delay (ms)'])
+        bandwidths.append(row['Bandwidth (Mbps)'])
+        losses.append(row['Loss (%)'])
+        h2_throughput.append(row['HTTP/2 Throughput (req/s)'])
+        h3_throughput.append(row['HTTP/3 Throughput (req/s)'])
+        h2_latency.append(row['HTTP/2 Latency (ms)'])
+        h3_latency.append(row['HTTP/3 Latency (ms)'])
+        h2_connection.append(row['HTTP/2 Connection Time (ms)'])
+        h3_connection.append(row['HTTP/3 Connection Time (ms)'])
+        throughput_advantage.append(row['Throughput Advantage (%)'])
+        latency_advantage.append(row['Latency Advantage (%)'])
+        connection_advantage.append(row['Connection Advantage (%)'])
 
 
     # Create figure with subplots
@@ -238,7 +249,7 @@ def create_performance_comparison_graphs(data, output_dir):
     fig.texts.clear()
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'performance_comparison_overview.png'), 
-                dpi=300, bbox_inches='tight')
+                dpi=150, bbox_inches='tight')
     plt.close()
     
     # Create detailed analysis graphs
@@ -252,10 +263,17 @@ def create_detailed_analysis_graphs(data, output_dir):
     # Sort data by delay
     data.sort(key=lambda x: x['Delay (ms)'])
     
-    delays = [row['Delay (ms)'] for row in data]
-    bandwidths = [row['Bandwidth (Mbps)'] for row in data]
-    throughput_advantage = [row['Throughput Advantage (%)'] for row in data]
-    latency_advantage = [row['Latency Advantage (%)'] for row in data]
+    # 高速化のため一度にデータ抽出
+    delays = []
+    bandwidths = []
+    throughput_advantage = []
+    latency_advantage = []
+    
+    for row in data:
+        delays.append(row['Delay (ms)'])
+        bandwidths.append(row['Bandwidth (Mbps)'])
+        throughput_advantage.append(row['Throughput Advantage (%)'])
+        latency_advantage.append(row['Latency Advantage (%)'])
     
     # Create detailed analysis figure
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
@@ -366,7 +384,7 @@ def create_detailed_analysis_graphs(data, output_dir):
     
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'detailed_performance_analysis.png'), 
-                dpi=300, bbox_inches='tight')
+                dpi=150, bbox_inches='tight')
     plt.close()
     
     # Create summary statistics
@@ -375,10 +393,15 @@ def create_detailed_analysis_graphs(data, output_dir):
 def create_summary_statistics(data, output_dir):
     """Create summary statistics and key findings"""
     
-    # Calculate summary statistics
-    throughput_advantages = [row['Throughput Advantage (%)'] for row in data]
-    latency_advantages = [row['Latency Advantage (%)'] for row in data]
-    connection_advantages = [row['Connection Advantage (%)'] for row in data]
+    # Calculate summary statistics (高速化のため一度に抽出)
+    throughput_advantages = []
+    latency_advantages = []
+    connection_advantages = []
+    
+    for row in data:
+        throughput_advantages.append(row['Throughput Advantage (%)'])
+        latency_advantages.append(row['Latency Advantage (%)'])
+        connection_advantages.append(row['Connection Advantage (%)'])
     
     # Find conditions where HTTP/3 is advantageous
     h3_advantage_conditions = [i for i, adv in enumerate(throughput_advantages) if adv > 0]
@@ -429,7 +452,7 @@ def create_summary_statistics(data, output_dir):
     
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'performance_summary_statistics.png'), 
-                dpi=300, bbox_inches='tight')
+                dpi=150, bbox_inches='tight')
     plt.close()
     
     # Generate summary report
@@ -446,10 +469,15 @@ def generate_summary_report(data, output_dir):
         f.write("=" * 80 + "\n")
         f.write(f"Generated Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         
-        # Calculate key statistics
-        throughput_advantages = [row['Throughput Advantage (%)'] for row in data]
-        latency_advantages = [row['Latency Advantage (%)'] for row in data]
-        connection_advantages = [row['Connection Advantage (%)'] for row in data]
+        # Calculate key statistics (高速化のため一度に抽出)
+        throughput_advantages = []
+        latency_advantages = []
+        connection_advantages = []
+        
+        for row in data:
+            throughput_advantages.append(row['Throughput Advantage (%)'])
+            latency_advantages.append(row['Latency Advantage (%)'])
+            connection_advantages.append(row['Connection Advantage (%)'])
         
         h3_advantage_count = sum(1 for adv in throughput_advantages if adv > 0)
         h2_advantage_count = sum(1 for adv in throughput_advantages if adv < 0)
@@ -539,50 +567,65 @@ def load_benchmark_csvs(log_dir):
             loss = int(loss_part.replace('pct.csv',''))
             bw = 0
         return delay, loss, bw
-    h2_map = {parse_case(f): f for f in h2_csvs}
-    h3_map = {parse_case(f): f for f in h3_csvs}
-    all_cases = sorted(set(h2_map.keys()) & set(h3_map.keys()))
-    for case in all_cases:
-        delay, loss, bw = case
-        h2_csv = h2_map[case]
-        h3_csv = h3_map[case]
-        # h2/h3のcsvはh2loadの--log-file出力（1行目ヘッダ、2行目以降データ）
-        def extract_metrics_from_log(logfile):
-            # h2loadのサマリーレポートから値を抽出
-            throughput = 0
-            latency = 0
-            connect = 0
+    
+    def extract_metrics_from_log(logfile):
+        """高速化されたログファイルからのメトリクス抽出"""
+        throughput = 0
+        latency = 0
+        connect = 0
+        
+        try:
             with open(logfile, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-            # サマリーレポートの該当行を逆順で探す
-            for i in range(len(lines)-1, -1, -1):
-                line = lines[i]
+                # ファイルの最後の100行だけを読み込んで高速化
+                lines = f.readlines()[-100:]
+                
+            # 逆順で検索して最初に見つかったものを使用
+            for line in reversed(lines):
                 if 'time for request:' in line:
-                    # 例: time for request:      735us    797.12ms    361.19ms    198.30ms    60.34%
                     m = re.search(r'time for request:\s+([\d\.]+\w+)\s+([\d\.]+\w+)\s+([\d\.]+)ms', line)
                     if m:
                         latency = float(m.group(3))
+                        break
+                        
+            for line in reversed(lines):
                 if 'time for connect:' in line:
                     m = re.search(r'time for connect:\s+([\d\.]+\w+)\s+([\d\.]+\w+)\s+([\d\.]+)ms', line)
                     if m:
                         connect = float(m.group(3))
+                        break
+                        
+            for line in reversed(lines):
                 if 'finished in' in line and 'req/s' in line:
-                    # 例: finished in 953.07ms, 9443.21 req/s, 2.74MB/s
                     m = re.search(r'finished in [\d\.]+\w+, ([\d\.]+) req/s', line)
                     if m:
                         throughput = float(m.group(1))
-                if throughput and latency and connect:
-                    break
-            return throughput, latency, connect
+                        break
+                        
+        except Exception as e:
+            print(f"Warning: Error reading {logfile}: {e}")
+            
+        return throughput, latency, connect
 
+    h2_map = {parse_case(f): f for f in h2_csvs}
+    h3_map = {parse_case(f): f for f in h3_csvs}
+    all_cases = sorted(set(h2_map.keys()) & set(h3_map.keys()))
+    
+    for case in all_cases:
+        delay, loss, bw = case
+        h2_csv = h2_map[case]
+        h3_csv = h3_map[case]
+        
         h2_log = h2_csv.replace('.csv', '.log')
         h3_log = h3_csv.replace('.csv', '.log')
+        
         h2_throughput, h2_latency, h2_connect = extract_metrics_from_log(h2_log)
         h3_throughput, h3_latency, h3_connect = extract_metrics_from_log(h3_log)
+        
         # 優位性計算
         throughput_adv = ((h3_throughput - h2_throughput) / h2_throughput * 100) if h2_throughput else 0
         latency_adv = ((h2_latency - h3_latency) / h2_latency * 100) if h2_latency else 0
         connect_adv = ((h2_connect - h3_connect) / h2_connect * 100) if h2_connect else 0
+        
         data.append({
             'Delay (ms)': delay,
             'Loss (%)': loss,
@@ -631,10 +674,36 @@ def generate_graphs(log_dir):
 def create_network_conditions_info(data, output_dir):
     """テスト条件やネットワーク通信環境の情報を表示するグラフを生成"""
     
-    # ネットワーク条件の詳細情報を収集
+    # ネットワーク条件の詳細情報を収集（高速化のため一度に処理）
     conditions_info = []
+    delays = []
+    losses = []
+    bandwidths = []
+    h2_throughputs = []
+    h3_throughputs = []
+    h2_latencies = []
+    h3_latencies = []
+    h2_connections = []
+    h3_connections = []
+    throughput_advantages = []
+    latency_advantages = []
+    connection_advantages = []
+    
     for row in data:
-        condition = {
+        delays.append(row['Delay (ms)'])
+        losses.append(row['Loss (%)'])
+        bandwidths.append(row['Bandwidth (Mbps)'])
+        h2_throughputs.append(row['HTTP/2 Throughput (req/s)'])
+        h3_throughputs.append(row['HTTP/3 Throughput (req/s)'])
+        h2_latencies.append(row['HTTP/2 Latency (ms)'])
+        h3_latencies.append(row['HTTP/3 Latency (ms)'])
+        h2_connections.append(row['HTTP/2 Connection Time (ms)'])
+        h3_connections.append(row['HTTP/3 Connection Time (ms)'])
+        throughput_advantages.append(row['Throughput Advantage (%)'])
+        latency_advantages.append(row['Latency Advantage (%)'])
+        connection_advantages.append(row['Connection Advantage (%)'])
+        
+        conditions_info.append({
             'delay': row['Delay (ms)'],
             'loss': row['Loss (%)'],
             'bandwidth': row['Bandwidth (Mbps)'],
@@ -647,8 +716,7 @@ def create_network_conditions_info(data, output_dir):
             'throughput_advantage': row['Throughput Advantage (%)'],
             'latency_advantage': row['Latency Advantage (%)'],
             'connection_advantage': row['Connection Advantage (%)']
-        }
-        conditions_info.append(condition)
+        })
     
     # 図の作成
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
@@ -656,9 +724,7 @@ def create_network_conditions_info(data, output_dir):
     
     # 1. ネットワーク条件の分布
     ax1 = axes[0, 0]
-    delays = [c['delay'] for c in conditions_info]
-    losses = [c['loss'] for c in conditions_info]
-    bandwidths = [c['bandwidth'] for c in conditions_info]
+    # delays, losses, bandwidthsは既に抽出済み
     
     # 遅延の分布
     ax1.scatter(delays, [1]*len(delays), c='red', s=100, alpha=0.7, label='遅延 (ms)')
@@ -730,9 +796,7 @@ def create_network_conditions_info(data, output_dir):
     # 3. ネットワーク条件の影響分析
     ax3 = axes[1, 0]
     
-    # 遅延とスループット優位性の関係
-    delays = [c['delay'] for c in conditions_info]
-    throughput_advantages = [c['throughput_advantage'] for c in conditions_info]
+    # 遅延とスループット優位性の関係（既に抽出済み）
     
     colors = ['red' if adv < 0 else 'green' for adv in throughput_advantages]
     bars = ax3.bar(range(len(delays)), throughput_advantages, color=colors, alpha=0.7)
@@ -774,8 +838,8 @@ def create_network_conditions_info(data, output_dir):
         ['HTTP/3優位ケース', f"{sum(1 for adv in throughput_advantages if adv > 0)}/{len(conditions_info)}"],
         ['HTTP/2優位ケース', f"{sum(1 for adv in throughput_advantages if adv < 0)}/{len(conditions_info)}"],
         ['平均スループット優位性', f"{np.mean(throughput_advantages):.1f}%"],
-        ['平均レイテンシ優位性', f"{np.mean([c['latency_advantage'] for c in conditions_info]):.1f}%"],
-        ['平均接続時間優位性', f"{np.mean([c['connection_advantage'] for c in conditions_info]):.1f}%"],
+        ['平均レイテンシ優位性', f"{np.mean(latency_advantages):.1f}%"],
+        ['平均接続時間優位性', f"{np.mean(connection_advantages):.1f}%"],
         ['', ''],
         ['ベンチマーク設定', ''],
     ]
@@ -806,7 +870,7 @@ def create_network_conditions_info(data, output_dir):
     fig.canvas.draw()
     output_file1 = os.path.join(output_dir, 'network_conditions_info.png')
     output_file2 = os.path.join(output_dir, 'test_conditions_and_network_environment.png')
-    plt.savefig(output_file1, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file1, dpi=150, bbox_inches='tight')
     plt.close()
     shutil.copyfile(output_file1, output_file2)
     print(f"Network Conditions Information Graph Generation Completed: {output_file1} および {output_file2}")
@@ -832,6 +896,7 @@ def load_benchmark_params(log_dir):
     return params
 
 if __name__ == "__main__":
+    print("START")
     try:
         # 必要なモジュールのインポート確認
         required_modules = ['numpy', 'matplotlib', 'seaborn', 'pandas']

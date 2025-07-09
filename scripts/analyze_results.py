@@ -1,7 +1,8 @@
+
 #!/usr/bin/env python3
 """
-Enhanced analysis script for HTTP/2 vs HTTP/3 performance comparison
-with fair comparison metrics and detailed statistical analysis
+Extreme conditions analysis script
+for HTTP/3 vs HTTP/2 performance comparison
 """
 
 import os
@@ -13,8 +14,8 @@ import numpy as np
 from datetime import datetime
 import re
 
-def parse_h2load_log(log_file):
-    """Parse h2load log file and extract metrics"""
+def parse_extreme_conditions_log(log_file):
+    """Parse extreme conditions test log file and extract metrics"""
     metrics = {
         'throughput': None,
         'success_count': None,
@@ -27,8 +28,11 @@ def parse_h2load_log(log_file):
         'first_byte_time': None,
         'traffic_total': None,
         'traffic_headers': None,
-        'traffic_data': None,
         'protocol': None,
+        'delay': None,
+        'loss': None,
+        'bandwidth': None,
+        'description': None,
         'fair_comparison': False
     }
     
@@ -47,10 +51,27 @@ def parse_h2load_log(log_file):
             metrics['protocol'] = 'HTTP/2'
         else:
             # Try to determine from filename
-            if 'h3_' in log_file:
+            if 'h3_extreme_' in log_file:
                 metrics['protocol'] = 'HTTP/3'
             else:
                 metrics['protocol'] = 'HTTP/2'
+        
+        # Extract network conditions from log
+        delay_match = re.search(r'Delay: (\d+)ms', content)
+        if delay_match:
+            metrics['delay'] = int(delay_match.group(1))
+            
+        loss_match = re.search(r'Loss: (\d+)%', content)
+        if loss_match:
+            metrics['loss'] = int(loss_match.group(1))
+            
+        bandwidth_match = re.search(r'Bandwidth: (\d+)Mbps', content)
+        if bandwidth_match:
+            metrics['bandwidth'] = int(bandwidth_match.group(1))
+            
+        description_match = re.search(r'Description: (.+)', content)
+        if description_match:
+            metrics['description'] = description_match.group(1).strip()
         
         # Extract throughput (req/s) - measurement phase only
         throughput_lines = re.findall(r'finished in.*?(\d+(?:\.\d+)?)\s+req/s', content)
@@ -123,162 +144,270 @@ def parse_h2load_log(log_file):
         print(f"Error parsing {log_file}: {e}")
         return metrics
 
-def calculate_fair_metrics(metrics):
-    """Calculate fair comparison metrics by excluding connection overhead"""
-    if not metrics['fair_comparison']:
-        return metrics
+def calculate_http3_advantage(h2_metrics, h3_metrics):
+    """Calculate HTTP/3 advantage over HTTP/2"""
+    if not h2_metrics or not h3_metrics:
+        return None
     
-    # For fair comparison, we focus on request processing time
-    # Connection time is excluded from latency calculations
-    if metrics['connection_time'] and metrics['first_byte_time']:
-        # Adjusted latency = first byte time (connection + processing)
-        metrics['fair_latency'] = metrics['first_byte_time']
-        # Pure processing time = first byte time - connection time
-        metrics['processing_latency'] = max(0, metrics['first_byte_time'] - metrics['connection_time'])
-    else:
-        metrics['fair_latency'] = metrics['avg_latency']
-        metrics['processing_latency'] = metrics['avg_latency']
+    advantage = {}
     
-    return metrics
+    # Throughput advantage (higher is better)
+    if h2_metrics.get('throughput') and h3_metrics.get('throughput'):
+        h2_tp = h2_metrics['throughput']
+        h3_tp = h3_metrics['throughput']
+        advantage['throughput'] = ((h3_tp - h2_tp) / h2_tp) * 100
+    
+    # Latency advantage (lower is better)
+    if h2_metrics.get('avg_latency') and h3_metrics.get('avg_latency'):
+        h2_lat = h2_metrics['avg_latency']
+        h3_lat = h3_metrics['avg_latency']
+        advantage['latency'] = ((h2_lat - h3_lat) / h2_lat) * 100
+    
+    # Connection time advantage (lower is better)
+    if h2_metrics.get('connection_time') and h3_metrics.get('connection_time'):
+        h2_conn = h2_metrics['connection_time']
+        h3_conn = h3_metrics['connection_time']
+        advantage['connection_time'] = ((h2_conn - h3_conn) / h2_conn) * 100
+    
+    return advantage
 
-def generate_fair_comparison_report(log_dir):
-    """Generate comprehensive fair comparison report"""
-    report_file = os.path.join(log_dir, "fair_comparison_report.txt")
-    csv_file = os.path.join(log_dir, "fair_comparison_data.csv")
+def generate_extreme_conditions_report(log_dir):
+    """Generate comprehensive extreme conditions analysis report"""
+    # Ensure log directory exists
+    os.makedirs(log_dir, exist_ok=True)
     
-    # Find all log files
-    h2_logs = glob.glob(os.path.join(log_dir, "h2_*.log"))
-    h3_logs = glob.glob(os.path.join(log_dir, "h3_*.log"))
+    report_file = os.path.join(log_dir, "extreme_conditions_report.txt")
+    csv_file = os.path.join(log_dir, "extreme_conditions_data.csv")
+    
+    # Find all extreme conditions test log files
+    h2_logs = glob.glob(os.path.join(log_dir, "h2_extreme_*.log"))
+    h3_logs = glob.glob(os.path.join(log_dir, "h3_extreme_*.log"))
     
     all_results = []
+    comparison_results = []
     
     # Process HTTP/2 logs
+    h2_results = {}
     for log_file in h2_logs:
-        metrics = parse_h2load_log(log_file)
-        metrics = calculate_fair_metrics(metrics)
+        metrics = parse_extreme_conditions_log(log_file)
         
-        # Extract test case from filename
-        filename = os.path.basename(log_file)
-        match = re.search(r'h2_(\d+)ms_(\d+)pct', filename)
-        if match:
-            metrics['delay'] = int(match.group(1))
-            metrics['loss'] = int(match.group(2))
-            metrics['test_case'] = f"{match.group(1)}ms/{match.group(2)}%"
+        # Create key for matching
+        if metrics.get('delay') is not None and metrics.get('bandwidth') is not None:
+            key = f"{metrics['delay']}_{metrics['bandwidth']}"
+            h2_results[key] = metrics
             all_results.append(metrics)
     
     # Process HTTP/3 logs
+    h3_results = {}
     for log_file in h3_logs:
-        metrics = parse_h2load_log(log_file)
-        metrics = calculate_fair_metrics(metrics)
+        metrics = parse_extreme_conditions_log(log_file)
         
-        # Extract test case from filename
-        filename = os.path.basename(log_file)
-        match = re.search(r'h3_(\d+)ms_(\d+)pct', filename)
-        if match:
-            metrics['delay'] = int(match.group(1))
-            metrics['loss'] = int(match.group(2))
-            metrics['test_case'] = f"{match.group(1)}ms/{match.group(2)}%"
+        # Create key for matching
+        if metrics.get('delay') is not None and metrics.get('bandwidth') is not None:
+            key = f"{metrics['delay']}_{metrics['bandwidth']}"
+            h3_results[key] = metrics
             all_results.append(metrics)
     
-    # Sort by test case and protocol
-    all_results.sort(key=lambda x: (x['test_case'], x['protocol']))
+    # Generate comparisons
+    for key in h2_results:
+        if key in h3_results:
+            h2_metrics = h2_results[key]
+            h3_metrics = h3_results[key]
+            
+            advantage = calculate_http3_advantage(h2_metrics, h3_metrics)
+            
+            comparison = {
+                'test_case': h2_metrics.get('description', f"{h2_metrics.get('delay', 0)}ms/{h2_metrics.get('bandwidth', 0)}Mbps"),
+                'delay': h2_metrics.get('delay'),
+                'loss': h2_metrics.get('loss'),
+                'bandwidth': h2_metrics.get('bandwidth'),
+                'h2_throughput': h2_metrics.get('throughput'),
+                'h3_throughput': h3_metrics.get('throughput'),
+                'h2_latency': h2_metrics.get('avg_latency'),
+                'h3_latency': h3_metrics.get('avg_latency'),
+                'h2_connection_time': h2_metrics.get('connection_time'),
+                'h3_connection_time': h3_metrics.get('connection_time'),
+                'throughput_advantage': advantage.get('throughput') if advantage else None,
+                'latency_advantage': advantage.get('latency') if advantage else None,
+                'connection_advantage': advantage.get('connection_time') if advantage else None
+            }
+            comparison_results.append(comparison)
+    
+    # Sort by delay and bandwidth
+    comparison_results.sort(key=lambda x: (x['delay'], x['bandwidth']))
     
     # Generate CSV report
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow([
-            'Test Case', 'Protocol', 'Fair Comparison', 'Throughput (req/s)',
-            'Success Count', 'Total Requests', 'Avg Latency (ms)', 'Min Latency (ms)',
-            'Max Latency (ms)', 'Std Dev (ms)', 'Connection Time (ms)',
-            'First Byte Time (ms)', 'Fair Latency (ms)', 'Processing Latency (ms)',
-            'Traffic Total (MB)', 'Traffic Headers (MB)'
+            'Test Case', 'Delay (ms)', 'Loss (%)', 'Bandwidth (Mbps)',
+            'HTTP/2 Throughput (req/s)', 'HTTP/3 Throughput (req/s)',
+            'HTTP/2 Latency (ms)', 'HTTP/3 Latency (ms)',
+            'HTTP/2 Connection Time (ms)', 'HTTP/3 Connection Time (ms)',
+            'Throughput Advantage (%)', 'Latency Advantage (%)', 'Connection Advantage (%)'
         ])
         
-        for result in all_results:
+        for result in comparison_results:
             writer.writerow([
                 result.get('test_case', ''),
-                result.get('protocol', ''),
-                result.get('fair_comparison', False),
-                result.get('throughput', ''),
-                result.get('success_count', ''),
-                result.get('total_requests', ''),
-                result.get('avg_latency', ''),
-                result.get('min_latency', ''),
-                result.get('max_latency', ''),
-                result.get('std_dev', ''),
-                result.get('connection_time', ''),
-                result.get('first_byte_time', ''),
-                result.get('fair_latency', ''),
-                result.get('processing_latency', ''),
-                result.get('traffic_total', ''),
-                result.get('traffic_headers', '')
+                result.get('delay', ''),
+                result.get('loss', ''),
+                result.get('bandwidth', ''),
+                result.get('h2_throughput', ''),
+                result.get('h3_throughput', ''),
+                result.get('h2_latency', ''),
+                result.get('h3_latency', ''),
+                result.get('h2_connection_time', ''),
+                result.get('h3_connection_time', ''),
+                result.get('throughput_advantage', ''),
+                result.get('latency_advantage', ''),
+                result.get('connection_advantage', '')
             ])
     
     # Generate text report
     with open(report_file, 'w', encoding='utf-8') as f:
-        f.write("=" * 60 + "\n")
-        f.write("HTTP/2 vs HTTP/3 公平性比較レポート\n")
-        f.write("=" * 60 + "\n")
+        f.write("=" * 80 + "\n")
+        f.write("極端なネットワーク条件でのHTTP/3 vs HTTP/2性能比較レポート\n")
+        f.write("=" * 80 + "\n")
         f.write(f"生成時刻: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write("公平性改善: 接続確立後の純粋なリクエスト処理性能を比較\n")
+        f.write("目的: 極端な高遅延・高損失・低帯域条件でのHTTP/3優位性の検証\n\n")
+        
+        f.write("=" * 80 + "\n")
+        f.write("テストケース別詳細分析\n")
+        f.write("=" * 80 + "\n\n")
+        
+        for result in comparison_results:
+            f.write(f"テストケース: {result['test_case']}\n")
+            f.write("-" * 60 + "\n")
+            f.write(f"ネットワーク条件: {result['delay']}ms遅延, {result['loss']}%損失, {result['bandwidth']}Mbps帯域\n\n")
+            
+            # Throughput comparison
+            if result['h2_throughput'] and result['h3_throughput']:
+                f.write("スループット比較:\n")
+                f.write(f"  HTTP/2: {result['h2_throughput']:.2f} req/s\n")
+                f.write(f"  HTTP/3: {result['h3_throughput']:.2f} req/s\n")
+                if result['throughput_advantage']:
+                    if result['throughput_advantage'] > 0:
+                        f.write(f"  HTTP/3優位: +{result['throughput_advantage']:.1f}%\n")
+                    else:
+                        f.write(f"  HTTP/2優位: {result['throughput_advantage']:.1f}%\n")
+                f.write("\n")
+            
+            # Latency comparison
+            if result['h2_latency'] and result['h3_latency']:
+                f.write("レイテンシ比較:\n")
+                f.write(f"  HTTP/2: {result['h2_latency']:.3f} ms\n")
+                f.write(f"  HTTP/3: {result['h3_latency']:.3f} ms\n")
+                if result['latency_advantage']:
+                    if result['latency_advantage'] > 0:
+                        f.write(f"  HTTP/3優位: +{result['latency_advantage']:.1f}%\n")
+                    else:
+                        f.write(f"  HTTP/2優位: {result['latency_advantage']:.1f}%\n")
+                f.write("\n")
+            
+            # Connection time comparison
+            if result['h2_connection_time'] and result['h3_connection_time']:
+                f.write("接続時間比較:\n")
+                f.write(f"  HTTP/2: {result['h2_connection_time']:.3f} ms\n")
+                f.write(f"  HTTP/3: {result['h3_connection_time']:.3f} ms\n")
+                if result['connection_advantage']:
+                    if result['connection_advantage'] > 0:
+                        f.write(f"  HTTP/3優位: +{result['connection_advantage']:.1f}%\n")
+                    else:
+                        f.write(f"  HTTP/2優位: {result['connection_advantage']:.1f}%\n")
+                f.write("\n")
+            
+            f.write("\n")
+        
+        # Summary analysis
+        f.write("=" * 80 + "\n")
+        f.write("総合分析\n")
+        f.write("=" * 80 + "\n\n")
+        
+        # Count advantages
+        throughput_advantages = [r['throughput_advantage'] for r in comparison_results if r['throughput_advantage'] is not None]
+        latency_advantages = [r['latency_advantage'] for r in comparison_results if r['latency_advantage'] is not None]
+        connection_advantages = [r['connection_advantage'] for r in comparison_results if r['connection_advantage'] is not None]
+        
+        if throughput_advantages:
+            avg_throughput_adv = np.mean(throughput_advantages)
+            f.write(f"平均スループット優位性: {avg_throughput_adv:.1f}%\n")
+            if avg_throughput_adv > 0:
+                f.write("→ HTTP/3がスループットで優位\n")
+            else:
+                f.write("→ HTTP/2がスループットで優位\n")
+        
+        if latency_advantages:
+            avg_latency_adv = np.mean(latency_advantages)
+            f.write(f"平均レイテンシ優位性: {avg_latency_adv:.1f}%\n")
+            if avg_latency_adv > 0:
+                f.write("→ HTTP/3がレイテンシで優位\n")
+            else:
+                f.write("→ HTTP/2がレイテンシで優位\n")
+        
+        if connection_advantages:
+            avg_connection_adv = np.mean(connection_advantages)
+            f.write(f"平均接続時間優位性: {avg_connection_adv:.1f}%\n")
+            if avg_connection_adv > 0:
+                f.write("→ HTTP/3が接続時間で優位\n")
+            else:
+                f.write("→ HTTP/2が接続時間で優位\n")
+        
         f.write("\n")
         
-        # Group results by test case
-        test_cases = {}
-        for result in all_results:
-            test_case = result['test_case']
-            if test_case not in test_cases:
-                test_cases[test_case] = []
-            test_cases[test_case].append(result)
+        # Extreme conditions analysis
+        extreme_results = [r for r in comparison_results if r['delay'] >= 400 and r['loss'] >= 7]
+        if extreme_results:
+            f.write("極端な条件（400ms以上遅延、7%以上損失）での分析:\n")
+            f.write("-" * 50 + "\n")
+            
+            extp_advantages = [r['throughput_advantage'] for r in extreme_results if r['throughput_advantage'] is not None]
+            exlat_advantages = [r['latency_advantage'] for r in extreme_results if r['latency_advantage'] is not None]
+            
+            if extp_advantages:
+                avg_extp = np.mean(extp_advantages)
+                f.write(f"極端な条件での平均スループット優位性: {avg_extp:.1f}%\n")
+            
+            if exlat_advantages:
+                avg_exlat = np.mean(exlat_advantages)
+                f.write(f"極端な条件での平均レイテンシ優位性: {avg_exlat:.1f}%\n")
+            
+            f.write("\n")
         
-        for test_case, results in test_cases.items():
-            f.write(f"テストケース: {test_case}\n")
+        # Very low bandwidth analysis
+        very_low_bw_results = [r for r in comparison_results if r['bandwidth'] <= 5]
+        if very_low_bw_results:
+            f.write("極低帯域環境（5Mbps以下）での分析:\n")
             f.write("-" * 40 + "\n")
             
-            h2_result = None
-            h3_result = None
+            vlbw_tp_advantages = [r['throughput_advantage'] for r in very_low_bw_results if r['throughput_advantage'] is not None]
+            vlbw_lat_advantages = [r['latency_advantage'] for r in very_low_bw_results if r['latency_advantage'] is not None]
             
-            for result in results:
-                if result['protocol'] == 'HTTP/2':
-                    h2_result = result
-                elif result['protocol'] == 'HTTP/3':
-                    h3_result = result
+            if vlbw_tp_advantages:
+                avg_vlbw_tp = np.mean(vlbw_tp_advantages)
+                f.write(f"極低帯域環境での平均スループット優位性: {avg_vlbw_tp:.1f}%\n")
             
-            if h2_result and h3_result:
-                # Fair comparison analysis
-                f.write("公平性比較分析:\n")
-                f.write(f"  HTTP/2 スループット: {h2_result.get('throughput', 'N/A')} req/s\n")
-                f.write(f"  HTTP/3 スループット: {h3_result.get('throughput', 'N/A')} req/s\n")
-                
-                if h2_result.get('throughput') and h3_result.get('throughput'):
-                    throughput_diff = ((h3_result['throughput'] - h2_result['throughput']) / h2_result['throughput']) * 100
-                    f.write(f"  スループット差分: {throughput_diff:+.1f}%\n")
-                
-                f.write(f"  HTTP/2 接続時間: {h2_result.get('connection_time', 'N/A')} ms\n")
-                f.write(f"  HTTP/3 接続時間: {h3_result.get('connection_time', 'N/A')} ms\n")
-                
-                f.write(f"  HTTP/2 処理レイテンシ: {h2_result.get('processing_latency', 'N/A')} ms\n")
-                f.write(f"  HTTP/3 処理レイテンシ: {h3_result.get('processing_latency', 'N/A')} ms\n")
-                
-                if h2_result.get('processing_latency') and h3_result.get('processing_latency'):
-                    latency_diff = ((h3_result['processing_latency'] - h2_result['processing_latency']) / h2_result['processing_latency']) * 100
-                    f.write(f"  処理レイテンシ差分: {latency_diff:+.1f}%\n")
-                
-                f.write("\n")
+            if vlbw_lat_advantages:
+                avg_vlbw_lat = np.mean(vlbw_lat_advantages)
+                f.write(f"極低帯域環境での平均レイテンシ優位性: {avg_vlbw_lat:.1f}%\n")
+            
+            f.write("\n")
         
-        f.write("=" * 60 + "\n")
+        f.write("=" * 80 + "\n")
         f.write("結論\n")
-        f.write("=" * 60 + "\n")
-        f.write("このレポートは、接続確立のオーバーヘッドを除外した\n")
-        f.write("純粋なリクエスト処理性能の比較を提供します。\n")
-        f.write("\n")
-        f.write("公平性の改善点:\n")
-        f.write("- 接続確立後のウォームアップ期間を設定\n")
-        f.write("- 接続時間と処理時間を分離して測定\n")
-        f.write("- 同じ負荷パラメータで両プロトコルをテスト\n")
-        f.write("- 統計的な有意性を考慮した比較\n")
+        f.write("=" * 80 + "\n")
+        f.write("このレポートは、極端なネットワーク条件での\n")
+        f.write("HTTP/3とHTTP/2の性能比較を提供します。\n\n")
+        
+        f.write("論文の仮説検証:\n")
+        f.write("- 極端な高遅延環境でのHTTP/3優位性\n")
+        f.write("- 極端な高損失環境でのHTTP/3優位性\n")
+        f.write("- 極低帯域環境でのHTTP/3優位性\n")
+        f.write("- ネットワーク制約下でのプロトコル選択指針\n\n")
+        
+        f.write("詳細なCSVデータ: " + csv_file + "\n")
     
-    print(f"公平性比較レポートを生成しました:")
+    print(f"極端な条件分析レポート生成完了:")
     print(f"  テキストレポート: {report_file}")
     print(f"  CSVデータ: {csv_file}")
 
@@ -295,8 +424,8 @@ def main():
         print("Error: Log directory not found (/logs or ./logs)")
         sys.exit(1)
     
-    print(f"HTTP/3 vs HTTP/2性能分析を開始... (log_dir={log_dir})")
-    generate_fair_comparison_report(log_dir)
+    print(f"極端なネットワーク条件でのHTTP/3 vs HTTP/2性能分析を開始... (log_dir={log_dir})")
+    generate_extreme_conditions_report(log_dir)
     print("分析完了!")
 
 if __name__ == "__main__":

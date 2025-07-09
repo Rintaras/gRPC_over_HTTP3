@@ -60,16 +60,44 @@
 ./scripts/run_bench.sh
 ```
 - 通常のネットワーク条件下でのHTTP/2 vs HTTP/3比較
+- **リクエスト数**: 200,000回（ウォームアップ20,000回 + 測定180,000回）
 - 出力: `logs/benchmark_YYYYMMDD_HHMMSS/`
 
-### 2. 高遅延・低帯域テスト
+### 2. 5回自動実行（平均化）
+```bash
+./scripts/run_bench_5times.sh
+```
+- 5回のベンチマークを自動実行し、データを平均化
+- **各回のリクエスト数**: 200,000回
+- **総リクエスト数**: 1,000,000回（5回 × 200,000回）
+- **平均化グラフ**: 5回の結果を平均化した信頼性の高いグラフ
+- 出力: `logs/benchmark_5times_YYYYMMDD_HHMMSS/`
+
+### 3. 高負荷テスト
+```bash
+./scripts/run_bench_highload.sh
+```
+- 高負荷環境でのHTTP/2 vs HTTP/3比較
+- **リクエスト数**: 200,000回（ウォームアップ20,000回 + 測定180,000回）
+- 出力: `logs/benchmark_highload_YYYYMMDD_HHMMSS/`
+
+### 4. 軽量テスト（高速実行）
+```bash
+./scripts/run_bench2.sh
+./scripts/run_bench3.sh
+```
+- 軽量なベンチマーク（開発・テスト用）
+- **リクエスト数**: 20,000回（ウォームアップ2,000回 + 測定18,000回）
+- 出力: `logs/benchmark2_YYYYMMDD_HHMMSS/`
+
+### 5. 高遅延・低帯域テスト
 ```bash
 ./scripts/run_high_latency_bandwidth_test.sh
 ```
 - 論文の仮説検証：高遅延・低帯域環境でのHTTP/3優位性
 - 出力: `logs/high_latency_bandwidth_YYYYMMDD_HHMMSS/`
 
-### 3. 極端な条件テスト
+### 6. 極端な条件テスト
 ```bash
 ./scripts/run_extreme_conditions_test.sh
 ```
