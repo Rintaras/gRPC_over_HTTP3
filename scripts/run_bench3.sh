@@ -31,15 +31,15 @@ declare -a test_cases=(
 )
 
 # Benchmark parameters (unified for all protocols)
-REQUESTS=400000       # 総リクエスト数（適切なレベルに調整）
+REQUESTS=200000       # 総リクエスト数（適切なレベルに調整）
 CONNECTIONS=100       # 同時接続数（安定性のため調整）
 THREADS=20           # 並列スレッド数（調整）
 MAX_CONCURRENT=100   # 最大同時ストリーム数（調整）
 REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # サイズ: 約150バイト
 
 # Fair comparison parameters
-WARMUP_REQUESTS=40000  # 接続確立後のウォームアップ用リクエスト数（調整）
-MEASUREMENT_REQUESTS=360000  # 実際の測定用リクエスト数（調整）
+WARMUP_REQUESTS=20000  # 接続確立後のウォームアップ用リクエスト数（調整）
+MEASUREMENT_REQUESTS=180000  # 実際の測定用リクエスト数（調整）
 CONNECTION_WARMUP_TIME=5  # 接続確立後の待機時間（秒）（増加）
 
 # Calculate derived parameters

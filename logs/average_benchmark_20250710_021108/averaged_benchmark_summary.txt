@@ -1,0 +1,41 @@
+================================================================================
+HTTP/3 vs HTTP/2 Performance Comparison - Averaged Results (5 executions)
+================================================================================
+Generated Time: 2025-07-10 02:11:11
+
+📊 Averaged Results Summary
+----------------------------------------
+• Total Test Cases: 4
+• HTTP/3 Advantage Cases: 3/4 Cases
+• HTTP/2 Advantage Cases: 1/4 Cases
+• Average Throughput Advantage: 8.9%
+• Average Latency Advantage: -48.3%
+• Standard Deviation (Throughput): 8.0%
+• Standard Deviation (Latency): 23.1%
+
+🎯 Detailed Results
+----------------------------------------
+• 0ms Delay, 1% Loss, 0Mbps BW:
+  - HTTP/2 Throughput: 10769.0 req/s
+  - HTTP/3 Throughput: 11868.0 req/s
+  - Throughput Advantage: +10.2%
+  - Latency Advantage: -60.2%
+
+• 50ms Delay, 1% Loss, 0Mbps BW:
+  - HTTP/2 Throughput: 11038.2 req/s
+  - HTTP/3 Throughput: 12146.7 req/s
+  - Throughput Advantage: +10.0%
+  - Latency Advantage: -21.2%
+
+• 100ms Delay, 1% Loss, 0Mbps BW:
+  - HTTP/2 Throughput: 12358.0 req/s
+  - HTTP/3 Throughput: 11926.0 req/s
+  - Throughput Advantage: -3.5%
+  - Latency Advantage: -79.9%
+
+• 150ms Delay, 1% Loss, 0Mbps BW:
+  - HTTP/2 Throughput: 9144.4 req/s
+  - HTTP/3 Throughput: 10860.7 req/s
+  - Throughput Advantage: +18.8%
+  - Latency Advantage: -32.1%
+
