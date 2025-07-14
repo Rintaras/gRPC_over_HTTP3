@@ -1,6 +1,0 @@
-11: eth0@if20: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default 
-    link/ether 92:78:e9:62:67:58 brd ff:ff:ff:ff:ff:ff link-netnsid 0
-    RX:   bytes  packets errors dropped  missed   mcast           
-     5697897178  5457095      0       0       0       0 
-    TX:   bytes  packets errors dropped carrier collsns           
-    11862904500 12631543      0       0       0       0 
