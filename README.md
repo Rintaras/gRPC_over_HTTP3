@@ -218,9 +218,3 @@ cargo run --bin quiche-server -- --cert nginx-http3.crt --key nginx-http3.key --
 
 ## ライセンス
 MIT License
-
-## 更新履歴
-- **2025/08/15**: run_bench.shのクリーンアップ完了
-- **2025/08/15**: グラフ生成スクリプトの改善
-- **2025/08/15**: Raspberry Piサーバー対応完了
-- **2025/08/15**: CSV解析の改善とエラーハンドリング強化 
