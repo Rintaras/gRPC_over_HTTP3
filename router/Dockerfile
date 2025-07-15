@@ -18,5 +18,3 @@ COPY ../scripts/sync_time.sh /usr/local/bin/sync_time.sh
 RUN chmod +x /usr/local/bin/sync_time.sh
 
 WORKDIR /scripts 
-
-aiu
