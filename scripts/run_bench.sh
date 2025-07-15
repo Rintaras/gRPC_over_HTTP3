@@ -4,6 +4,10 @@
 # Tests 4 network conditions: (0/0), (50/0), (100/1), (150/3)
 # Features: Long measurement time, increased connections, extended timeouts, protocol separation
 
+
+eo
+
+
 echo "================================================"
 echo "HTTP/2 vs HTTP/3 Performance Benchmark"
 echo "================================================"
