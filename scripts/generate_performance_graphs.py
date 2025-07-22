@@ -564,7 +564,8 @@ def load_benchmark_csvs(log_dir):
             loss = int(loss_part.replace('pct',''))
             bw = int(parts[3].replace('mbps.csv',''))
         else:
-            loss = int(loss_part.replace('pct.csv',''))
+            # ファイル名の末尾の.csvを除去してからpctを除去
+            loss = int(loss_part.replace('pct.csv','').replace('pct',''))
             bw = 0
         return delay, loss, bw
     

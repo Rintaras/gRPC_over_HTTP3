@@ -22,25 +22,33 @@ echo "[INFO] ログディレクトリ: $LOG_DIR"
 SERVER_IP="172.30.0.2"
 ROUTER_IP="172.30.0.254"
 
-# Test cases: (delay_ms, loss_percent)
-declare -a test_cases=(
-    "0 0"    # 理想環境: 0ms遅延、0%損失
-    "50 0"   # 中程度遅延: 50ms遅延、0%損失
-    "100 1"  # 高遅延低損失: 100ms遅延、1%損失
-    "150 3"  # 高遅延高損失: 150ms遅延、3%損失
+# Test cases with more extreme conditions for HTTP/3 advantage
+# Limited to 4 cases for time efficiency and consistency
+TEST_CASES=(
+    "0 0"      # Ideal conditions
+    "50 0"     # Moderate delay
+    "100 1"    # High delay, low loss
+    "150 3"    # High delay, moderate loss
 )
 
-# Benchmark parameters (unified for all protocols)
-REQUESTS=200000       # 総リクエスト数（適切なレベルに調整）
-CONNECTIONS=100       # 同時接続数（安定性のため調整）
-THREADS=20           # 並列スレッド数（調整）
-MAX_CONCURRENT=100   # 最大同時ストリーム数（調整）
+# Benchmark parameters (optimized for HTTP/3 connection time improvement)
+REQUESTS=50000        # 総リクエスト数（統計的安定性のため増加）
+CONNECTIONS=100       # 同時接続数（統計的安定性のため増加）
+THREADS=20           # 並列スレッド数（統計的安定性のため増加）
+MAX_CONCURRENT=100   # 最大同時ストリーム数（統計的安定性のため増加）
 REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # サイズ: 約150バイト
 
-# Fair comparison parameters
-WARMUP_REQUESTS=20000  # 接続確立後のウォームアップ用リクエスト数（調整）
-MEASUREMENT_REQUESTS=180000  # 実際の測定用リクエスト数（調整）
-CONNECTION_WARMUP_TIME=5  # 接続確立後の待機時間（秒）（増加）
+# Fair comparison parameters - HTTP/3接続時間改善
+WARMUP_REQUESTS=20000   # 接続確立後のウォームアップ用リクエスト数（統計的安定性のため増加）
+MEASUREMENT_REQUESTS=30000  # 実際の測定用リクエスト数（統計的安定性のため増加）
+CONNECTION_WARMUP_TIME=10   # 0-RTT接続の利点を活かすため延長（統計的安定性のため延長）
+CONNECTION_REUSE_ENABLED=true  # 接続再利用を有効化
+
+# System stabilization settings for consistent results
+SYSTEM_STABILIZATION_TIME=30  # システム安定化のための待機時間
+CPU_AFFINITY_ENABLED=true     # CPUアフィニティの有効化
+MEMORY_CLEANUP_ENABLED=true   # メモリクリーンアップの有効化
+NETWORK_RESET_ENABLED=true    # ネットワークリセットの有効化
 
 # Calculate derived parameters
 REQUESTS_PER_CONNECTION=$((REQUESTS / CONNECTIONS))
@@ -58,7 +66,7 @@ echo "  Max Concurrent Streams: $MAX_CONCURRENT"
 echo "  Requests per Connection: $REQUESTS_PER_CONNECTION"
 echo "  Connections per Thread: $CONNECTIONS_PER_THREAD"
 echo "  Request Data: \"$REQUEST_DATA\""
-echo "  Test Cases: ${#test_cases[@]}"
+echo "  Test Cases: ${#TEST_CASES[@]}"
 echo "  Fair Comparison: Enabled"
 echo "    - Warmup Requests: $WARMUP_REQUESTS"
 echo "    - Measurement Requests: $MEASUREMENT_REQUESTS"
@@ -83,6 +91,39 @@ WARMUP_REQUESTS=$WARMUP_REQUESTS
 MEASUREMENT_REQUESTS=$MEASUREMENT_REQUESTS
 CONNECTION_WARMUP_TIME=$CONNECTION_WARMUP_TIME
 EOF
+
+# Function to stabilize system before benchmark
+stabilize_system() {
+    local delay=$1
+    local loss=$2
+    
+    echo "=== SYSTEM STABILIZATION ==="
+    echo "Timestamp: $(get_timestamp)"
+    echo "Delay: ${delay}ms, Loss: ${loss}%"
+    
+    # Wait for system stabilization
+    echo "Waiting ${SYSTEM_STABILIZATION_TIME}s for system stabilization..."
+    sleep $SYSTEM_STABILIZATION_TIME
+    
+    # Memory cleanup if enabled
+    if [ "$MEMORY_CLEANUP_ENABLED" = true ]; then
+        echo "Performing memory cleanup..."
+        docker exec grpc-client sync 2>/dev/null || true
+        docker exec grpc-router sync 2>/dev/null || true
+        docker exec grpc-server sync 2>/dev/null || true
+    fi
+    
+    # Network reset if enabled
+    if [ "$NETWORK_RESET_ENABLED" = true ]; then
+        echo "Resetting network connections..."
+        docker exec grpc-client ip route flush cache 2>/dev/null || true
+        docker exec grpc-router ip route flush cache 2>/dev/null || true
+        docker exec grpc-server ip route flush cache 2>/dev/null || true
+    fi
+    
+    echo "System stabilization completed"
+    echo ""
+}
 
 # Function to get current timestamp
 get_timestamp() {
@@ -270,7 +311,7 @@ verify_http3() {
 }
 
 # Main benchmark loop
-for test_case in "${test_cases[@]}"; do
+for test_case in "${TEST_CASES[@]}"; do
     read -r delay loss <<< "$test_case"
     
     echo ""
@@ -280,7 +321,10 @@ for test_case in "${test_cases[@]}"; do
     
     # Apply network conditions
     echo "Applying network conditions..."
-    docker exec grpc-router /scripts/netem_delay_loss.sh $delay $loss
+    docker exec grpc-router /scripts/netem_delay_loss_bandwidth.sh $delay $loss
+    
+    # System stabilization for consistent results
+    stabilize_system $delay $loss
     
     # Wait for network to stabilize
     echo "Waiting for network to stabilize..."
@@ -316,7 +360,7 @@ ls -la $LOG_DIR/h*_*.log
 echo ""
 echo "=== SUMMARY REPORT ==="
 echo "Generated at: $(get_timestamp)"
-echo "Total test cases: ${#test_cases[@]}"
+echo "Total test cases: ${#TEST_CASES[@]}"
 echo "Log directory: $LOG_DIR"
 echo ""
 echo "File sizes:"

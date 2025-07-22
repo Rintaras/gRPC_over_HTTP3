@@ -1,0 +1,6 @@
+Hello from nginx! Protocol: HTTP/3.0, HTTP/3: h3, Time: 0.000
+Connect: 0.002482s
+TLS: 0.002805s
+TTFB: 0.003964s
+Total: 0.004025s
+Duration: .009183166s

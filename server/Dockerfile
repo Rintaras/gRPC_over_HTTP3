@@ -50,12 +50,12 @@ RUN wget https://nginx.org/download/nginx-1.25.3.tar.gz \
     && tar -xzf nginx-1.25.3.tar.gz \
     && cd nginx-1.25.3 \
     && ./configure \
-        --prefix=/opt/nginx-h3 \
-        --with-http_ssl_module \
-        --with-http_v2_module \
-        --with-http_v3_module \
-        --with-cc-opt="-I/tmp/quiche/include" \
-        --with-ld-opt="-L/tmp/quiche/target/release -lquiche" \
+    --prefix=/opt/nginx-h3 \
+    --with-http_ssl_module \
+    --with-http_v2_module \
+    --with-http_v3_module \
+    --with-cc-opt="-I/tmp/quiche/include" \
+    --with-ld-opt="-L/tmp/quiche/target/release -lquiche" \
     && make -j$(nproc) \
     && make install \
     && cd .. \
@@ -64,9 +64,12 @@ RUN wget https://nginx.org/download/nginx-1.25.3.tar.gz \
 # Create self-signed certificate
 RUN mkdir -p /opt/nginx-h3/certs \
     && openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout /opt/nginx-h3/certs/server.key \
-        -out /opt/nginx-h3/certs/server.crt \
-        -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Test/CN=server"
+    -keyout /opt/nginx-h3/certs/server.key \
+    -out /opt/nginx-h3/certs/server.crt \
+    -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Test/CN=server"
+
+# Generate session ticket key for 0-RTT
+RUN openssl rand 80 > /opt/nginx-h3/certs/ticket.key
 
 # Create nginx configuration directory and log directories
 RUN mkdir -p /opt/nginx-h3/conf /opt/nginx-h3/proto /var/log/nginx

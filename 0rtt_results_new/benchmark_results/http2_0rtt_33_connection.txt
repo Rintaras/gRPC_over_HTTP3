@@ -1,0 +1,5 @@
+Connect: 0.000124s
+TLS: 0.000000s
+TTFB: 0.000000s
+Total: 0.000652s
+Duration: .004432459s
