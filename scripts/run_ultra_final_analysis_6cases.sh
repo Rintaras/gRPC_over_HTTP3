@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Performance Comparison Analysis Script
-# performance_comparison_overview.pngのようなグラフを生成するスクリプト
+# Ultra Final Boundary Analysis Script - 6 Cases Version
+# 超最終的な境界値分析スクリプト - 6ケース版
 
 set -e
 
 # 基本設定
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="logs/performance_comparison_$(date +%Y%m%d_%H%M%S)"
+LOG_DIR="logs/ultra_final_boundary_analysis_6cases_$(date +%Y%m%d_%H%M%S)"
 SERVER_IP="172.30.0.2"
 ROUTER_IP="172.30.0.254"
 
@@ -15,7 +15,7 @@ ROUTER_IP="172.30.0.254"
 START_TIME=$(date +%s)
 
 echo "================================================"
-echo "HTTP/2 vs HTTP/3 性能比較分析"
+echo "超最終境界値分析 (6ケース版)"
 echo "================================================"
 echo "開始時刻: $(date)"
 echo "ログディレクトリ: $LOG_DIR"
@@ -24,19 +24,19 @@ echo "================================================"
 # ログディレクトリ作成
 mkdir -p $LOG_DIR
 
-# 性能比較テストケース（performance_comparison_overview.pngと同じ条件）
-declare -a PERFORMANCE_TEST_CONDITIONS=(
-    # 遅延条件（損失なし）
-    "0:0:0"      # 理想環境
-    "50:0:0"     # 中遅延
-    "100:0:0"    # 高遅延
-    "150:0:0"    # 超高遅延
-)
-
-echo "性能比較テスト条件:"
-for condition in "${PERFORMANCE_TEST_CONDITIONS[@]}"; do
-    echo "  • $condition"
-done
+# 6ケースのテスト条件
+echo "テスト条件 (6ケース):"
+echo "  低遅延環境 (2ケース):"
+echo "    • 0ms遅延, 0%損失, 0Mbps帯域 (理想環境)"
+echo "    • 10ms遅延, 0%損失, 0Mbps帯域 (低遅延)"
+echo ""
+echo "  中遅延環境 (2ケース):"
+echo "    • 30ms遅延, 1%損失, 0Mbps帯域 (中遅延 + 低損失)"
+echo "    • 50ms遅延, 2%損失, 0Mbps帯域 (中高遅延 + 中損失)"
+echo ""
+echo "  高遅延環境 (2ケース):"
+echo "    • 100ms遅延, 3%損失, 0Mbps帯域 (高遅延 + 高損失)"
+echo "    • 200ms遅延, 5%損失, 0Mbps帯域 (超高遅延 + 超高損失)"
 echo ""
 
 # システム準備
@@ -44,11 +44,10 @@ echo "システム準備中..."
 docker exec grpc-router /scripts/netem_delay_loss_bandwidth.sh 0 0 > /dev/null 2>&1
 sleep 5
 
-# 性能比較分析実行
-echo "性能比較分析を開始..."
-python3 scripts/performance_comparison_analyzer.py \
-    --log_dir "$LOG_DIR" \
-    --test_conditions "${PERFORMANCE_TEST_CONDITIONS[@]}"
+# 超最終境界値分析実行 (6ケース版)
+echo "超最終境界値分析 (6ケース版) を開始..."
+python3 scripts/ultra_final_analysis_6cases.py \
+    --log_dir "$LOG_DIR"
 
 # ネットワーク条件リセット
 echo ""
@@ -65,7 +64,7 @@ SECONDS=$((EXECUTION_TIME % 60))
 
 echo ""
 echo "================================================"
-echo "性能比較分析完了: $(date)"
+echo "超最終境界値分析 (6ケース版) 完了: $(date)"
 echo "結果保存先: $LOG_DIR"
 echo "================================================"
 
@@ -80,7 +79,8 @@ ls -la "$LOG_DIR"/*.png 2>/dev/null || echo "グラフファイルが見つか�
 ls -la "$LOG_DIR"/*.txt 2>/dev/null || echo "レポートファイルが見つかりません"
 
 echo ""
-echo "次のステップ: 性能比較レポートを確認してください"
-echo "cat $LOG_DIR/performance_comparison_report.txt"
+echo "次のステップ: 超最終レポートを確認してください"
+echo "cat $LOG_DIR/ultra_final_boundary_report_6cases.txt"
 echo ""
-echo "グラフファイル: $LOG_DIR/performance_comparison_overview.png" 
+echo "グラフファイル:"
+echo "open $LOG_DIR/ultra_final_boundary_analysis_6cases.png" 
