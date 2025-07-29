@@ -66,17 +66,19 @@ for case_info in "${NETWORK_CASES[@]}"; do
         
         # 超最終境界値分析実行
         echo "超最終境界値分析を開始..."
+        echo "測定回数分のディレクトリが自動生成されます..."
         python3 scripts/ultra_final_analysis.py \
             --log_dir "$EXP_LOG_DIR" \
             --test_conditions "${delay}:${loss}:${bandwidth}"
         
         echo "実験 $experiment/$EXPERIMENT_COUNT 完了"
         echo "結果保存先: $EXP_LOG_DIR"
+        echo "測定ディレクトリ: $EXP_LOG_DIR/measurement_1, measurement_2"
         
         # 実験間隔
         if [ $experiment -lt $EXPERIMENT_COUNT ]; then
-            echo "次の実験まで30秒待機..."
-            sleep 30
+            echo "次の実験まで10秒待機..."
+            sleep 10  # 30秒から10秒に短縮
         fi
     done
     
