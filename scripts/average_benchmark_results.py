@@ -101,7 +101,32 @@ def load_benchmark_data(log_dir):
     """ベンチマークディレクトリからデータを読み込み"""
     data = []
     
-    # CSVファイルを探索
+    # まずperformance_comparison.csvを探す
+    performance_csv = os.path.join(log_dir, 'performance_comparison.csv')
+    if os.path.exists(performance_csv):
+        print(f"Found performance_comparison.csv in {log_dir}")
+        try:
+            with open(performance_csv, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # 数値に変換
+                    processed_row = {}
+                    for key, value in row.items():
+                        if key in ['Delay (ms)', 'Loss (%)', 'Bandwidth (Mbps)']:
+                            processed_row[key] = int(float(value)) if value else 0
+                        elif key in ['HTTP/2 Throughput (req/s)', 'HTTP/3 Throughput (req/s)', 
+                                   'HTTP/2 Latency (ms)', 'HTTP/3 Latency (ms)',
+                                   'HTTP/2 Connection Time (ms)', 'HTTP/3 Connection Time (ms)',
+                                   'Throughput Advantage (%)', 'Latency Advantage (%)', 'Connection Advantage (%)']:
+                            processed_row[key] = float(value) if value else 0
+                        else:
+                            processed_row[key] = value
+                    data.append(processed_row)
+            return data
+        except Exception as e:
+            print(f"Error reading performance_comparison.csv: {e}")
+    
+    # 従来のh2_*.csv, h3_*.csvファイルを探索
     h2_csvs = sorted(glob.glob(os.path.join(log_dir, 'h2_*.csv')))
     h3_csvs = sorted(glob.glob(os.path.join(log_dir, 'h3_*.csv')))
     
@@ -628,6 +653,7 @@ def main():
     """メイン関数"""
     parser = argparse.ArgumentParser(description='Average benchmark results from multiple executions')
     parser.add_argument('log_dirs', nargs='+', help='Benchmark log directories')
+    parser.add_argument('--output_dir', help='Output directory for averaged results')
     args = parser.parse_args()
     
     # 平均化データを計算
@@ -638,8 +664,12 @@ def main():
         sys.exit(1)
     
     # 出力ディレクトリ作成
-    now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = f"logs/average_benchmark_{now}"
+    if args.output_dir:
+        output_dir = args.output_dir
+    else:
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = f"logs/average_benchmark_{now}"
+    
     os.makedirs(output_dir, exist_ok=True)
     
     print(f"Output directory: {output_dir}")

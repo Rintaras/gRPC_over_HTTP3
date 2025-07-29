@@ -18,6 +18,7 @@ import glob
 import re
 import matplotlib
 import shutil
+import argparse
 matplotlib.rcParams['font.family'] = ['DejaVu Sans']
 matplotlib.rcParams['axes.unicode_minus'] = False
 from matplotlib.font_manager import FontProperties, findSystemFonts
@@ -63,7 +64,7 @@ def load_extreme_conditions_data(csv_file):
                 processed_row = {}
                 for key, value in row.items():
                     if key in ['Delay (ms)', 'Loss (%)', 'Bandwidth (Mbps)']:
-                        processed_row[key] = int(value) if value else 0
+                        processed_row[key] = int(float(value)) if value else 0
                     elif key in ['HTTP/2 Throughput (req/s)', 'HTTP/3 Throughput (req/s)', 
                                'HTTP/2 Latency (ms)', 'HTTP/3 Latency (ms)',
                                'HTTP/2 Connection Time (ms)', 'HTTP/3 Connection Time (ms)',
@@ -111,151 +112,154 @@ def create_performance_comparison_graphs(data, output_dir):
         throughput_advantage.append(row['Throughput Advantage (%)'])
         latency_advantage.append(row['Latency Advantage (%)'])
         connection_advantage.append(row['Connection Advantage (%)'])
-
-
+    
     # Create figure with subplots
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('HTTP/3 vs HTTP/2 性能比較 - ネットワーク条件での逆転現象', fontsize=16, fontweight='bold', fontproperties=jp_font)
+    fig.suptitle('HTTP/3 vs HTTP/2 Performance Comparison', fontsize=16, fontweight='bold', fontproperties=jp_font)
     
     # 1. Throughput comparison
     ax1 = axes[0, 0]
     x = np.arange(len(delays))
     width = 0.35
     
-    bars1 = ax1.bar(x - width/2, h2_throughput, width, label='HTTP/2', color='#1f77b4', alpha=0.8)
-    bars2 = ax1.bar(x + width/2, h3_throughput, width, label='HTTP/3', color='#ff7f0e', alpha=0.8)
+    bars1 = ax1.bar(x - width/2, h2_throughput, width, label='HTTP/2', color='skyblue', alpha=0.8)
+    bars2 = ax1.bar(x + width/2, h3_throughput, width, label='HTTP/3', color='orange', alpha=0.8)
     
-    ax1.set_xlabel('遅延 (ms)', fontproperties=jp_font)
-    ax1.set_ylabel('スループット (req/s)', fontproperties=jp_font)
-    ax1.set_title('スループット比較', fontproperties=jp_font)
+    ax1.set_xlabel('Network Conditions (Delay ms, Loss %, Bandwidth Mbps)', fontproperties=jp_font)
+    ax1.set_ylabel('Throughput (req/s)', fontproperties=jp_font)
+    ax1.set_title('Throughput Comparison', fontproperties=jp_font, fontweight='bold')
     ax1.set_xticks(x)
-    ax1.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], fontproperties=jp_font)
-    ax1.legend(prop=jp_font)
+    ax1.set_xticklabels([f"{d}ms\n{l}%\n{b}Mbps" for d, l, b in zip(delays, losses, bandwidths)], rotation=45, ha='right')
+    ax1.legend()
     ax1.grid(True, alpha=0.3)
     
     # Add value labels on bars
     for bar in bars1:
         height = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-                f'{height:.0f}', ha='center', va='bottom', fontsize=8, fontproperties=jp_font)
+        ax1.text(bar.get_x() + bar.get_width()/2., height + max(h2_throughput + h3_throughput) * 0.01,
+                f'{height:.0f}', ha='center', va='bottom', fontsize=8)
     
     for bar in bars2:
         height = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-                f'{height:.0f}', ha='center', va='bottom', fontsize=8, fontproperties=jp_font)
+        ax1.text(bar.get_x() + bar.get_width()/2., height + max(h2_throughput + h3_throughput) * 0.01,
+                f'{height:.0f}', ha='center', va='bottom', fontsize=8)
     
     # 2. Latency comparison
     ax2 = axes[0, 1]
-    bars3 = ax2.bar(x - width/2, h2_latency, width, label='HTTP/2', color='#1f77b4', alpha=0.8)
-    bars4 = ax2.bar(x + width/2, h3_latency, width, label='HTTP/3', color='#ff7f0e', alpha=0.8)
+    bars3 = ax2.bar(x - width/2, h2_latency, width, label='HTTP/2', color='skyblue', alpha=0.8)
+    bars4 = ax2.bar(x + width/2, h3_latency, width, label='HTTP/3', color='orange', alpha=0.8)
     
-    ax2.set_xlabel('遅延 (ms)', fontproperties=jp_font)
-    ax2.set_ylabel('レイテンシ (ms)', fontproperties=jp_font)
-    ax2.set_title('レイテンシ比較', fontproperties=jp_font)
+    ax2.set_xlabel('Network Conditions (Delay ms, Loss %, Bandwidth Mbps)', fontproperties=jp_font)
+    ax2.set_ylabel('Latency (ms)', fontproperties=jp_font)
+    ax2.set_title('Latency Comparison', fontproperties=jp_font, fontweight='bold')
     ax2.set_xticks(x)
-    ax2.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], fontproperties=jp_font)
-    ax2.legend(prop=jp_font)
+    ax2.set_xticklabels([f"{d}ms\n{l}%\n{b}Mbps" for d, l, b in zip(delays, losses, bandwidths)], rotation=45, ha='right')
+    ax2.legend()
     ax2.grid(True, alpha=0.3)
     
     # Add value labels on bars
     for bar in bars3:
         height = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-                f'{height:.3f}', ha='center', va='bottom', fontsize=8, fontproperties=jp_font)
+        ax2.text(bar.get_x() + bar.get_width()/2., height + max(h2_latency + h3_latency) * 0.01,
+                f'{height:.1f}', ha='center', va='bottom', fontsize=8)
     
     for bar in bars4:
         height = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-                f'{height:.3f}', ha='center', va='bottom', fontsize=8, fontproperties=jp_font)
+        ax2.text(bar.get_x() + bar.get_width()/2., height + max(h2_latency + h3_latency) * 0.01,
+                f'{height:.1f}', ha='center', va='bottom', fontsize=8)
     
     # 3. Connection time comparison
     ax3 = axes[0, 2]
-    bars5 = ax3.bar(x - width/2, h2_connection, width, label='HTTP/2', color='#1f77b4', alpha=0.8)
-    bars6 = ax3.bar(x + width/2, h3_connection, width, label='HTTP/3', color='#ff7f0e', alpha=0.8)
+    bars5 = ax3.bar(x - width/2, h2_connection, width, label='HTTP/2', color='skyblue', alpha=0.8)
+    bars6 = ax3.bar(x + width/2, h3_connection, width, label='HTTP/3', color='orange', alpha=0.8)
     
-    ax3.set_xlabel('遅延 (ms)', fontproperties=jp_font)
-    ax3.set_ylabel('接続時間 (ms)', fontproperties=jp_font)
-    ax3.set_title('接続時間比較', fontproperties=jp_font)
+    ax3.set_xlabel('Network Conditions (Delay ms, Loss %, Bandwidth Mbps)', fontproperties=jp_font)
+    ax3.set_ylabel('Connection Time (ms)', fontproperties=jp_font)
+    ax3.set_title('Connection Time Comparison', fontproperties=jp_font, fontweight='bold')
     ax3.set_xticks(x)
-    ax3.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], fontproperties=jp_font)
-    ax3.legend(prop=jp_font)
+    ax3.set_xticklabels([f"{d}ms\n{l}%\n{b}Mbps" for d, l, b in zip(delays, losses, bandwidths)], rotation=45, ha='right')
+    ax3.legend()
     ax3.grid(True, alpha=0.3)
     
     # Add value labels on bars
     for bar in bars5:
         height = bar.get_height()
-        ax3.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-                f'{height:.3f}', ha='center', va='bottom', fontsize=8, fontproperties=jp_font)
+        ax3.text(bar.get_x() + bar.get_width()/2., height + max(h2_connection + h3_connection) * 0.01,
+                f'{height:.1f}', ha='center', va='bottom', fontsize=8)
     
     for bar in bars6:
         height = bar.get_height()
-        ax3.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-                f'{height:.3f}', ha='center', va='bottom', fontsize=8, fontproperties=jp_font)
+        ax3.text(bar.get_x() + bar.get_width()/2., height + max(h2_connection + h3_connection) * 0.01,
+                f'{height:.1f}', ha='center', va='bottom', fontsize=8)
     
-    # 4. Throughput advantage over delay
+    # 4. Throughput advantage (percentage)
     ax4 = axes[1, 0]
     colors = ['red' if adv < 0 else 'green' for adv in throughput_advantage]
     bars7 = ax4.bar(x, throughput_advantage, color=colors, alpha=0.7)
-    ax4.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-    ax4.set_xlabel('遅延 (ms)', fontproperties=jp_font)
-    ax4.set_ylabel('HTTP/3 優位性 (%)', fontproperties=jp_font)
-    ax4.set_title('スループット優位性 (正=HTTP/3優位)', fontproperties=jp_font)
+    
+    ax4.set_xlabel('Network Conditions (Delay ms, Loss %, Bandwidth Mbps)', fontproperties=jp_font)
+    ax4.set_ylabel('HTTP/3 Advantage (%)', fontproperties=jp_font)
+    ax4.set_title('Throughput Advantage (Positive=HTTP/3 Superior)', fontproperties=jp_font, fontweight='bold')
     ax4.set_xticks(x)
-    ax4.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], fontproperties=jp_font)
+    ax4.set_xticklabels([f"{d}ms\n{l}%\n{b}Mbps" for d, l, b in zip(delays, losses, bandwidths)], rotation=45, ha='right')
+    ax4.axhline(y=0, color='black', linestyle='-', alpha=0.3)
     ax4.grid(True, alpha=0.3)
     
-    # Add value labels
+    # Add value labels on bars
     for bar in bars7:
         height = bar.get_height()
-        ax4.text(bar.get_x() + bar.get_width()/2., height + (1 if height >= 0 else -1),
-                f'{height:.1f}%', ha='center', va='bottom' if height >= 0 else 'top', fontsize=9, fontproperties=jp_font)
+        ax4.text(bar.get_x() + bar.get_width()/2., height + (0.1 if height >= 0 else -0.1),
+                f'{height:.1f}%', ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
     
-    # 5. Latency advantage over delay
+    # 5. Latency advantage (percentage)
     ax5 = axes[1, 1]
     colors = ['red' if adv < 0 else 'green' for adv in latency_advantage]
     bars8 = ax5.bar(x, latency_advantage, color=colors, alpha=0.7)
-    ax5.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-    ax5.set_xlabel('遅延 (ms)', fontproperties=jp_font)
-    ax5.set_ylabel('HTTP/3 優位性 (%)', fontproperties=jp_font)
-    ax5.set_title('レイテンシ優位性 (正=HTTP/3優位)', fontproperties=jp_font)
+    
+    ax5.set_xlabel('Network Conditions (Delay ms, Loss %, Bandwidth Mbps)', fontproperties=jp_font)
+    ax5.set_ylabel('HTTP/3 Advantage (%)', fontproperties=jp_font)
+    ax5.set_title('Latency Advantage (Positive=HTTP/3 Superior)', fontproperties=jp_font, fontweight='bold')
     ax5.set_xticks(x)
-    ax5.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], fontproperties=jp_font)
+    ax5.set_xticklabels([f"{d}ms\n{l}%\n{b}Mbps" for d, l, b in zip(delays, losses, bandwidths)], rotation=45, ha='right')
+    ax5.axhline(y=0, color='black', linestyle='-', alpha=0.3)
     ax5.grid(True, alpha=0.3)
     
-    # Add value labels
+    # Add value labels on bars
     for bar in bars8:
         height = bar.get_height()
-        ax5.text(bar.get_x() + bar.get_width()/2., height + (1 if height >= 0 else -1),
-                f'{height:.1f}%', ha='center', va='bottom' if height >= 0 else 'top', fontsize=9, fontproperties=jp_font)
+        ax5.text(bar.get_x() + bar.get_width()/2., height + (0.1 if height >= 0 else -0.1),
+                f'{height:.1f}%', ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
     
-    # 6. Connection time advantage over delay
+    # 6. Connection time advantage (percentage)
     ax6 = axes[1, 2]
     colors = ['red' if adv < 0 else 'green' for adv in connection_advantage]
     bars9 = ax6.bar(x, connection_advantage, color=colors, alpha=0.7)
-    ax6.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-    ax6.set_xlabel('遅延 (ms)', fontproperties=jp_font)
-    ax6.set_ylabel('HTTP/3 優位性 (%)', fontproperties=jp_font)
-    ax6.set_title('接続時間優位性 (正=HTTP/3優位)', fontproperties=jp_font)
+    
+    ax6.set_xlabel('Network Conditions (Delay ms, Loss %, Bandwidth Mbps)', fontproperties=jp_font)
+    ax6.set_ylabel('HTTP/3 Advantage (%)', fontproperties=jp_font)
+    ax6.set_title('Connection Time Advantage (Positive=HTTP/3 Superior)', fontproperties=jp_font, fontweight='bold')
     ax6.set_xticks(x)
-    ax6.set_xticklabels([f"{d}ms\n{b}Mbps" for d, b in zip(delays, bandwidths)], fontproperties=jp_font)
+    ax6.set_xticklabels([f"{d}ms\n{l}%\n{b}Mbps" for d, l, b in zip(delays, losses, bandwidths)], rotation=45, ha='right')
+    ax6.axhline(y=0, color='black', linestyle='-', alpha=0.3)
     ax6.grid(True, alpha=0.3)
     
-    # Add value labels
+    # Add value labels on bars
     for bar in bars9:
         height = bar.get_height()
-        ax6.text(bar.get_x() + bar.get_width()/2., height + (1 if height >= 0 else -1),
-                f'{height:.1f}%', ha='center', va='bottom' if height >= 0 else 'top', fontsize=9, fontproperties=jp_font)
-    # ここで全textをクリア
-    fig.texts.clear()
+        ax6.text(bar.get_x() + bar.get_width()/2., height + (0.1 if height >= 0 else -0.1),
+                f'{height:.1f}%', ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
+    
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'performance_comparison_overview.png'), 
-                dpi=150, bbox_inches='tight')
+    plt.subplots_adjust(top=0.92)
+    
+    # 保存前にCanvasを明示的に描画してから両方保存
+    fig.canvas.draw()
+    output_file1 = os.path.join(output_dir, 'performance_comparison_overview.png')
+    output_file2 = os.path.join(output_dir, 'test_conditions_and_network_environment.png')
+    plt.savefig(output_file1, dpi=150, bbox_inches='tight')
     plt.close()
-    
-    # Create detailed analysis graphs
-    create_detailed_analysis_graphs(data, output_dir)
-    
-    print(f"Graph generation completed: {output_dir}")
+    shutil.copyfile(output_file1, output_file2)
+    print(f"Performance Comparison Overview Graph Generation Completed: {output_file1} および {output_file2}")
 
 def create_detailed_analysis_graphs(data, output_dir):
     """Create detailed analysis graphs showing the reversal phenomenon"""
@@ -546,7 +550,19 @@ def generate_summary_report(data, output_dir):
 
 def load_benchmark_csvs(log_dir):
     print(f"[DEBUG] load_benchmark_csvs received log_dir: {log_dir}")
-    # CSV探索パスを修正
+    
+    # まずperformance_comparison.csvを探す
+    performance_csv = os.path.join(log_dir, 'performance_comparison.csv')
+    if os.path.exists(performance_csv):
+        print(f"Found performance_comparison.csv in {log_dir}")
+        try:
+            data = load_extreme_conditions_data(performance_csv)
+            if data:
+                return data
+        except Exception as e:
+            print(f"Error reading performance_comparison.csv: {e}")
+    
+    # 従来のh2_*.csv, h3_*.csvファイルを探索
     h2_csvs = sorted(glob.glob(os.path.join(log_dir, 'h2_*.csv')))
     h3_csvs = sorted(glob.glob(os.path.join(log_dir, 'h3_*.csv')))
     if not h2_csvs or not h3_csvs:
@@ -641,6 +657,7 @@ def load_benchmark_csvs(log_dir):
             'Latency Advantage (%)': latency_adv,
             'Connection Advantage (%)': connect_adv,
         })
+    
     return data
 
 def find_latest_benchmark_dir(base_dir="/logs"):
@@ -896,6 +913,118 @@ def load_benchmark_params(log_dir):
                     params.append((label, v))
     return params
 
+def integrate_multiple_cases(case_dirs, output_dir):
+    """複数のケースディレクトリからデータを統合"""
+    all_data = []
+    
+    for case_dir in case_dirs:
+        if not os.path.exists(case_dir):
+            print(f"Warning: Case directory not found: {case_dir}")
+            continue
+            
+        # CSVファイルを探す
+        csv_files = glob.glob(os.path.join(case_dir, "*.csv"))
+        if not csv_files:
+            print(f"Warning: No CSV files found in {case_dir}")
+            continue
+            
+        # 最初のCSVファイルを読み込み
+        csv_file = csv_files[0]
+        case_data = load_extreme_conditions_data(csv_file)
+        
+        # ケース名を追加
+        case_name = os.path.basename(case_dir)
+        for row in case_data:
+            row['Case'] = case_name
+            
+        all_data.extend(case_data)
+    
+    if not all_data:
+        print("Error: No data found in any case directory")
+        return
+    
+    # 統合データをCSVに保存
+    csv_file = os.path.join(output_dir, 'integrated_results.csv')
+    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+        if all_data:
+            writer = csv.DictWriter(f, fieldnames=all_data[0].keys())
+            writer.writeheader()
+            writer.writerows(all_data)
+    
+    print(f"Integrated data saved: {csv_file}")
+    
+    # データ形式を変換して統合グラフを生成
+    converted_data = convert_data_format(all_data)
+    if converted_data:
+        create_performance_comparison_graphs(converted_data, output_dir)
+        create_detailed_analysis_graphs(converted_data, output_dir)
+        create_summary_statistics(converted_data, output_dir)
+        create_network_conditions_info(converted_data, output_dir)
+        generate_summary_report(converted_data, output_dir)
+        
+        print(f"Integrated graphs created in: {output_dir}")
+    else:
+        print("Error: Failed to convert data format")
+
+def convert_data_format(data):
+    """データ形式を変換"""
+    converted_data = []
+    
+    # 条件ごとにデータをグループ化
+    conditions = {}
+    for row in data:
+        delay = int(row.get('Delay (ms)', 0))
+        loss = int(row.get('Loss (%)', 0))
+        bandwidth = int(row.get('Bandwidth (Mbps)', 0))
+        case = row.get('Case', 'unknown')
+        
+        key = (delay, loss, bandwidth, case)
+        if key not in conditions:
+            conditions[key] = {}
+        
+        protocol = row.get('Protocol', '').upper()
+        if 'HTTP2' in protocol or 'HTTP/2' in protocol:
+            conditions[key]['HTTP/2 Throughput (req/s)'] = float(row.get('Throughput (req/s)', 0))
+            conditions[key]['HTTP/2 Latency (ms)'] = float(row.get('Latency (ms)', 0))
+            conditions[key]['HTTP/2 Connection Time (ms)'] = float(row.get('Connection Time (ms)', 0))
+        elif 'HTTP3' in protocol or 'HTTP/3' in protocol:
+            conditions[key]['HTTP/3 Throughput (req/s)'] = float(row.get('Throughput (req/s)', 0))
+            conditions[key]['HTTP/3 Latency (ms)'] = float(row.get('Latency (ms)', 0))
+            conditions[key]['HTTP/3 Connection Time (ms)'] = float(row.get('Connection Time (ms)', 0))
+    
+    # 変換されたデータを作成
+    for (delay, loss, bandwidth, case), protocols in conditions.items():
+        if 'HTTP/2 Throughput (req/s)' in protocols and 'HTTP/3 Throughput (req/s)' in protocols:
+            h2_tp = protocols['HTTP/2 Throughput (req/s)']
+            h3_tp = protocols['HTTP/3 Throughput (req/s)']
+            h2_lat = protocols['HTTP/2 Latency (ms)']
+            h3_lat = protocols['HTTP/3 Latency (ms)']
+            h2_conn = protocols['HTTP/2 Connection Time (ms)']
+            h3_conn = protocols['HTTP/3 Connection Time (ms)']
+            
+            # 優位性を計算
+            throughput_adv = ((h3_tp - h2_tp) / h2_tp * 100) if h2_tp else 0
+            latency_adv = ((h2_lat - h3_lat) / h2_lat * 100) if h2_lat else 0
+            connect_adv = ((h2_conn - h3_conn) / h2_conn * 100) if h2_conn else 0
+            
+            converted_data.append({
+                'Delay (ms)': delay,
+                'Loss (%)': loss,
+                'Bandwidth (Mbps)': bandwidth,
+                'HTTP/2 Throughput (req/s)': h2_tp,
+                'HTTP/3 Throughput (req/s)': h3_tp,
+                'HTTP/2 Latency (ms)': h2_lat,
+                'HTTP/3 Latency (ms)': h3_lat,
+                'HTTP/2 Connection Time (ms)': h2_conn,
+                'HTTP/3 Connection Time (ms)': h3_conn,
+                'Throughput Advantage (%)': throughput_adv,
+                'Latency Advantage (%)': latency_adv,
+                'Connection Advantage (%)': connect_adv,
+                'Case': case
+            })
+    
+    return converted_data
+
 if __name__ == "__main__":
     print("START")
     try:
@@ -927,32 +1056,47 @@ if __name__ == "__main__":
                 print("Please install manually: pip3 install --user numpy matplotlib seaborn pandas")
                 sys.exit(1)
         
-        args = [a for a in sys.argv[1:] if not a.startswith('--')]
-        if len(args) == 0:
-            log_dir = find_latest_benchmark_dir(base_dir='/logs')
-            if log_dir is None:
-                print("Error: Benchmark directory not found. Please create benchmark_* directory under '/logs'.")
-                sys.exit(1)
-        elif len(args) == 1:
-            log_dir = args[0]
+        # コマンドライン引数の解析
+        parser = argparse.ArgumentParser(description='Generate performance graphs from benchmark data')
+        parser.add_argument('--log_dir', help='Log directory for single case')
+        parser.add_argument('--integrate_cases', action='store_true', help='Integrate multiple cases')
+        parser.add_argument('--case_dirs', nargs='+', help='Case directories for integration')
+        
+        args = parser.parse_args()
+        
+        if args.integrate_cases and args.case_dirs:
+            # 統合モード
+            output_dir = args.log_dir if args.log_dir else "logs/integrated_results"
+            os.makedirs(output_dir, exist_ok=True)
+            integrate_multiple_cases(args.case_dirs, output_dir)
         else:
-            print("Usage: python3 generate_performance_graphs.py <log_dir>")
-            sys.exit(1)
-        
-        # ログディレクトリの存在確認
-        if not os.path.exists(log_dir):
-            print(f"Error: Log directory '{log_dir}' does not exist.")
-            sys.exit(1)
-        
-        # 必要なファイルの存在確認
-        csv_files = [f for f in os.listdir(log_dir) if f.endswith('.csv')]
-        if not csv_files:
-            print(f"Error: No CSV files found in '{log_dir}'")
-            sys.exit(1)
-        
-        print(f"[DEBUG] load_benchmark_csvs received log_dir: {log_dir}")
-        generate_graphs(log_dir)
-        print("Graph generation completed! Output directory:", log_dir)
+            # 単一ケースモード
+            args_list = [a for a in sys.argv[1:] if not a.startswith('--')]
+            if len(args_list) == 0:
+                log_dir = find_latest_benchmark_dir(base_dir='/logs')
+                if log_dir is None:
+                    print("Error: Benchmark directory not found. Please create benchmark_* directory under '/logs'.")
+                    sys.exit(1)
+            elif len(args_list) == 1:
+                log_dir = args_list[0]
+            else:
+                print("Usage: python3 generate_performance_graphs.py <log_dir>")
+                sys.exit(1)
+            
+            # ログディレクトリの存在確認
+            if not os.path.exists(log_dir):
+                print(f"Error: Log directory '{log_dir}' does not exist.")
+                sys.exit(1)
+            
+            # 必要なファイルの存在確認
+            csv_files = [f for f in os.listdir(log_dir) if f.endswith('.csv')]
+            if not csv_files:
+                print(f"Error: No CSV files found in '{log_dir}'")
+                sys.exit(1)
+            
+            print(f"[DEBUG] load_benchmark_csvs received log_dir: {log_dir}")
+            generate_graphs(log_dir)
+            print("Graph generation completed! Output directory:", log_dir)
         
     except ImportError as e:
         print(f"Error: Required module not found: {e}")
