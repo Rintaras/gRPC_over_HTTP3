@@ -367,7 +367,7 @@ class UltraFinalAnalyzer:
     
     def generate_ultra_report(self):
         """超最終レポート生成"""
-        report_file = self.log_dir / "ultra_final_boundary_report.txt"
+        report_file = self.log_dir / 'ultra_final_boundary_report.txt'
         
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write("=" * 60 + "\n")
@@ -437,6 +437,99 @@ class UltraFinalAnalyzer:
                 f.write(f"• 境界値閾値: 5% → 10%に緩和\n")
         
         print(f"超最終レポートを保存: {report_file}")
+        
+        # CSVファイルも生成
+        self.generate_csv_report()
+    
+    def generate_csv_report(self):
+        """CSVファイル生成"""
+        if not self.results:
+            return
+        
+        csv_file = self.log_dir / 'ultra_final_results.csv'
+        
+        # データを整理
+        csv_data = []
+        for result in self.results:
+            csv_data.append({
+                'Protocol': result['protocol'].upper(),
+                'Delay (ms)': result['delay'],
+                'Loss (%)': result['loss'],
+                'Bandwidth (Mbps)': result['bandwidth'],
+                'Throughput (req/s)': result['throughput'],
+                'Throughput Std (req/s)': result['throughput_std'],
+                'Latency (ms)': result['latency'],
+                'Connection Time (ms)': result.get('connection_time', 0),
+                'Measurement Count': result.get('measurement_count', 5)
+            })
+        
+        # CSVファイルに保存
+        import csv
+        with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+            if csv_data:
+                writer = csv.DictWriter(f, fieldnames=csv_data[0].keys())
+                writer.writeheader()
+                writer.writerows(csv_data)
+        
+        print(f"CSVファイルを保存: {csv_file}")
+        
+        # 性能比較用のCSVも生成
+        self.generate_comparison_csv()
+    
+    def generate_comparison_csv(self):
+        """性能比較用CSVファイル生成"""
+        if not self.results:
+            return
+        
+        comparison_file = self.log_dir / 'performance_comparison.csv'
+        
+        # 条件ごとにHTTP/2とHTTP/3の結果を比較
+        comparison_data = []
+        
+        # 条件をグループ化
+        conditions = set()
+        for result in self.results:
+            conditions.add((result['delay'], result['loss'], result['bandwidth']))
+        
+        for delay, loss, bandwidth in conditions:
+            h2_results = [r for r in self.results if r['protocol'] == 'http2' and 
+                         r['delay'] == delay and r['loss'] == loss and r['bandwidth'] == bandwidth]
+            h3_results = [r for r in self.results if r['protocol'] == 'http3' and 
+                         r['delay'] == delay and r['loss'] == loss and r['bandwidth'] == bandwidth]
+            
+            if h2_results and h3_results:
+                h2_result = h2_results[0]
+                h3_result = h3_results[0]
+                
+                # 性能差を計算
+                throughput_diff = ((h2_result['throughput'] - h3_result['throughput']) / h3_result['throughput']) * 100
+                latency_diff = ((h2_result['latency'] - h3_result['latency']) / h3_result['latency']) * 100
+                
+                comparison_data.append({
+                    'Delay (ms)': delay,
+                    'Loss (%)': loss,
+                    'Bandwidth (Mbps)': bandwidth,
+                    'HTTP/2 Throughput (req/s)': h2_result['throughput'],
+                    'HTTP/3 Throughput (req/s)': h3_result['throughput'],
+                    'HTTP/2 Latency (ms)': h2_result['latency'],
+                    'HTTP/3 Latency (ms)': h3_result['latency'],
+                    'HTTP/2 Connection Time (ms)': h2_result.get('connection_time', 0),
+                    'HTTP/3 Connection Time (ms)': h3_result.get('connection_time', 0),
+                    'Throughput Advantage (%)': throughput_diff,
+                    'Latency Advantage (%)': latency_diff,
+                    'Connection Advantage (%)': 0,  # 接続時間の差も計算可能
+                    'Superior Protocol': 'HTTP/2' if throughput_diff > 0 else 'HTTP/3'
+                })
+        
+        # CSVファイルに保存
+        import csv
+        with open(comparison_file, 'w', newline='', encoding='utf-8') as f:
+            if comparison_data:
+                writer = csv.DictWriter(f, fieldnames=comparison_data[0].keys())
+                writer.writeheader()
+                writer.writerows(comparison_data)
+        
+        print(f"性能比較CSVファイルを保存: {comparison_file}")
 
 def main():
     parser = argparse.ArgumentParser(description='超最終境界値分析')
