@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# Improved benchmark script for HTTP/2 vs HTTP/3 performance comparison (長時間測定版)
-# Tests 4 network conditions: (0/0), (50/0), (100/1), (150/3)
-# Features: Long measurement time, increased connections, extended timeouts, protocol separation
+# HTTP/2 vs HTTP/3 Performance Benchmark Script
+# Tests 4 network conditions with 3% packet loss and varying delays
 
 echo "================================================"
 echo "HTTP/2 vs HTTP/3 Performance Benchmark"
@@ -23,7 +22,6 @@ SERVER_IP="172.30.0.2"
 ROUTER_IP="172.30.0.254"
 
 # Test cases with consistent 3% packet loss and varying delays
-# Limited to 4 cases for time efficiency and consistency
 TEST_CASES=(
     "0 3"      # 0ms delay, 3% loss
     "75 3"     # 75ms delay, 3% loss
@@ -31,50 +29,32 @@ TEST_CASES=(
     "225 3"    # 225ms delay, 3% loss
 )
 
-# Benchmark parameters (optimized for HTTP/3 connection time improvement)
-REQUESTS=50000        # 総リクエスト数（統計的安定性のため増加）
-CONNECTIONS=100       # 同時接続数（統計的安定性のため増加）
-THREADS=20           # 並列スレッド数（統計的安定性のため増加）
-MAX_CONCURRENT=100   # 最大同時ストリーム数（統計的安定性のため増加）
-REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test with realistic data payload for accurate measurement"  # サイズ: 約150バイト
+# Benchmark parameters
+REQUESTS=50000        # 総リクエスト数
+CONNECTIONS=100       # 同時接続数
+THREADS=20           # 並列スレッド数
+MAX_CONCURRENT=100   # 最大同時ストリーム数
+REQUEST_DATA="Hello from benchmark client - HTTP/2 vs HTTP/3 performance comparison test"
 
-# Fair comparison parameters - HTTP/3接続時間改善
-WARMUP_REQUESTS=20000   # 接続確立後のウォームアップ用リクエスト数（統計的安定性のため増加）
-MEASUREMENT_REQUESTS=30000  # 実際の測定用リクエスト数（統計的安定性のため増加）
-CONNECTION_WARMUP_TIME=10   # 0-RTT接続の利点を活かすため延長（統計的安定性のため延長）
-CONNECTION_REUSE_ENABLED=true  # 接続再利用を有効化
+# Fair comparison parameters
+WARMUP_REQUESTS=20000   # ウォームアップ用リクエスト数
+MEASUREMENT_REQUESTS=30000  # 測定用リクエスト数
+CONNECTION_WARMUP_TIME=10   # 接続安定化時間
 
-# System stabilization settings for consistent results
-SYSTEM_STABILIZATION_TIME=30  # システム安定化のための待機時間
-MEMORY_CLEANUP_ENABLED=true   # メモリクリーンアップの有効化
-NETWORK_RESET_ENABLED=true    # ネットワークリセットの有効化
-
-# Calculate derived parameters
-REQUESTS_PER_CONNECTION=$((REQUESTS / CONNECTIONS))
-REMAINING_REQUESTS=$((REQUESTS % CONNECTIONS))
-CONNECTIONS_PER_THREAD=$((CONNECTIONS / THREADS))
+# System stabilization settings
+SYSTEM_STABILIZATION_TIME=30  # システム安定化時間
 
 echo "================================================"
-echo "HTTP/2 vs HTTP/3 Performance Benchmark"
-echo "================================================"
-echo "Parameters:"
+echo "Benchmark Parameters:"
 echo "  Total Requests: $REQUESTS"
 echo "  Connections: $CONNECTIONS"
 echo "  Threads: $THREADS"
 echo "  Max Concurrent Streams: $MAX_CONCURRENT"
-echo "  Requests per Connection: $REQUESTS_PER_CONNECTION"
-echo "  Connections per Thread: $CONNECTIONS_PER_THREAD"
-echo "  Request Data: \"$REQUEST_DATA\""
 echo "  Test Cases: ${#TEST_CASES[@]}"
 echo "  Fair Comparison: Enabled"
 echo "    - Warmup Requests: $WARMUP_REQUESTS"
 echo "    - Measurement Requests: $MEASUREMENT_REQUESTS"
 echo "    - Connection Warmup Time: ${CONNECTION_WARMUP_TIME}s"
-echo "  Long Measurement: Enabled"
-echo "    - Estimated measurement time: ~3-5 minutes per test case"
-echo "    - Protocol separation: 30 seconds between HTTP/2 and HTTP/3"
-echo "    - Extended timeouts: 60 seconds for connections"
-echo "    - Optimized for server capacity and stability"
 echo "================================================"
 
 # Create log directory
@@ -91,153 +71,33 @@ MEASUREMENT_REQUESTS=$MEASUREMENT_REQUESTS
 CONNECTION_WARMUP_TIME=$CONNECTION_WARMUP_TIME
 EOF
 
-# Function to perform comprehensive system control
-comprehensive_system_control() {
-    local delay=$1
-    local loss=$2
-    
-    echo "=== COMPREHENSIVE SYSTEM CONTROL ==="
-    echo "Timestamp: $(get_timestamp)"
-    echo "Delay: ${delay}ms, Loss: ${loss}%"
-    
-    # Step 1: Memory usage control
-    control_memory_usage
-    
-    # Step 2: Network conditions control
-    control_network_conditions $delay $loss
-    
-    # Step 3: System stabilization
-    echo "=== FINAL SYSTEM STABILIZATION ==="
-    echo "Waiting ${SYSTEM_STABILIZATION_TIME}s for final stabilization..."
-    sleep $SYSTEM_STABILIZATION_TIME
-    
-    echo "Comprehensive system control completed"
-    echo ""
-}
-
-# Function to control Docker environment
-control_docker_environment() {
-    echo "=== DOCKER ENVIRONMENT CONTROL ==="
-    
-    # Restart containers for clean state
-    echo "Restarting containers for clean state..."
-    docker restart grpc-client grpc-router grpc-server 2>/dev/null || true
-    
-    # Wait for containers to be ready
-    echo "Waiting for containers to be ready..."
-    sleep 10
-    
-    # Verify container health
-    echo "Verifying container health..."
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep grpc || echo "No grpc containers found"
-    
-    # Set container resource limits
-    echo "Setting container resource limits..."
-    docker update --cpus=2.0 --memory=2g grpc-client 2>/dev/null || true
-    docker update --cpus=1.0 --memory=1g grpc-router 2>/dev/null || true
-    docker update --cpus=2.0 --memory=2g grpc-server 2>/dev/null || true
-    
-    echo "Docker environment control completed"
-    echo ""
-}
-
-# Function to control network conditions
-control_network_conditions() {
-    local delay=$1
-    local loss=$2
-    
-    echo "=== NETWORK CONDITIONS CONTROL ==="
-    echo "Delay: ${delay}ms, Loss: ${loss}%"
-    
-    if [ "$NETWORK_RESET_ENABLED" = true ]; then
-        echo "Resetting network connections..."
-        
-        # Flush route cache
-        docker exec grpc-client ip route flush cache 2>/dev/null || true
-        docker exec grpc-router ip route flush cache 2>/dev/null || true
-        docker exec grpc-server ip route flush cache 2>/dev/null || true
-        
-        # Reset TCP connections (simplified)
-        docker exec grpc-client pkill -f "ss" 2>/dev/null || true
-        docker exec grpc-router pkill -f "ss" 2>/dev/null || true
-        docker exec grpc-server pkill -f "ss" 2>/dev/null || true
-        
-        # Set network buffer sizes
-        docker exec grpc-client sysctl -w net.core.rmem_max=16777216 2>/dev/null || true
-        docker exec grpc-client sysctl -w net.core.wmem_max=16777216 2>/dev/null || true
-        docker exec grpc-router sysctl -w net.core.rmem_max=16777216 2>/dev/null || true
-        docker exec grpc-router sysctl -w net.core.wmem_max=16777216 2>/dev/null || true
-        docker exec grpc-server sysctl -w net.core.rmem_max=16777216 2>/dev/null || true
-        docker exec grpc-server sysctl -w net.core.wmem_max=16777216 2>/dev/null || true
-    fi
-    
-    echo "Network conditions control completed"
-    echo ""
-}
-
-# Function to control memory usage
-control_memory_usage() {
-    echo "=== MEMORY USAGE CONTROL ==="
-    
-    if [ "$MEMORY_CLEANUP_ENABLED" = true ]; then
-        echo "Performing comprehensive memory cleanup..."
-        
-        # Clear page cache
-        docker exec grpc-client sync 2>/dev/null || true
-        docker exec grpc-router sync 2>/dev/null || true
-        docker exec grpc-server sync 2>/dev/null || true
-        
-        # Clear dentries and inodes
-        docker exec grpc-client echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
-        docker exec grpc-router echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
-        docker exec grpc-server echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
-        
-        # Set memory limits for containers
-        docker update --memory=2g --memory-swap=2g grpc-client 2>/dev/null || true
-        docker update --memory=1g --memory-swap=1g grpc-router 2>/dev/null || true
-        docker update --memory=2g --memory-swap=2g grpc-server 2>/dev/null || true
-    fi
-    
-    echo "Memory usage control completed"
-    echo ""
-}
-
 # Function to stabilize system before benchmark
 stabilize_system() {
     local delay=$1
     local loss=$2
     
     echo "=== SYSTEM STABILIZATION ==="
-    echo "Timestamp: $(get_timestamp)"
+    echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "Delay: ${delay}ms, Loss: ${loss}%"
     
     # Wait for system stabilization
     echo "Waiting ${SYSTEM_STABILIZATION_TIME}s for system stabilization..."
     sleep $SYSTEM_STABILIZATION_TIME
     
-    # Memory cleanup if enabled
-    if [ "$MEMORY_CLEANUP_ENABLED" = true ]; then
-        echo "Performing memory cleanup..."
-        docker exec grpc-client sync 2>/dev/null || true
-        docker exec grpc-router sync 2>/dev/null || true
-        docker exec grpc-server sync 2>/dev/null || true
-    fi
+    # Memory cleanup
+    echo "Performing memory cleanup..."
+    docker exec grpc-client sync 2>/dev/null || true
+    docker exec grpc-router sync 2>/dev/null || true
+    docker exec grpc-server sync 2>/dev/null || true
     
-    # Network reset if enabled
-    if [ "$NETWORK_RESET_ENABLED" = true ]; then
-        echo "Resetting network connections..."
-        docker exec grpc-client ip route flush cache 2>/dev/null || true
-        docker exec grpc-router ip route flush cache 2>/dev/null || true
-        docker exec grpc-server ip route flush cache 2>/dev/null || true
-    fi
+    # Network reset
+    echo "Resetting network connections..."
+    docker exec grpc-client ip route flush cache 2>/dev/null || true
+    docker exec grpc-router ip route flush cache 2>/dev/null || true
+    docker exec grpc-server ip route flush cache 2>/dev/null || true
     
     echo "System stabilization completed"
     echo ""
-}
-
-# Function to get current timestamp
-get_timestamp() {
-    date "+%Y-%m-%d %H:%M:%S"
 }
 
 # Function to log network conditions
@@ -247,7 +107,7 @@ log_network_conditions() {
     local log_file=$3
     
     echo "=== NETWORK CONDITIONS ===" >> $log_file
-    echo "Timestamp: $(get_timestamp)" >> $log_file
+    echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')" >> $log_file
     echo "Delay: ${delay}ms" >> $log_file
     echo "Loss: ${loss}%" >> $log_file
     echo "Router IP: $ROUTER_IP" >> $log_file
@@ -313,7 +173,7 @@ run_http2_bench() {
     echo "Fair Comparison: Enabled" >> $log_file
     echo "Warmup Requests: $WARMUP_REQUESTS" >> $log_file
     echo "Measurement Requests: $MEASUREMENT_REQUESTS" >> $log_file
-    echo "End Time: $(get_timestamp)" >> $log_file
+    echo "End Time: $(date '+%Y-%m-%d %H:%M:%S')" >> $log_file
     echo "CSV Log: $csv_file" >> $log_file
     
     echo "HTTP/2 results saved to $log_file"
@@ -390,7 +250,7 @@ run_http3_bench() {
         echo "Fair Comparison: Enabled" >> $log_file
         echo "Warmup Requests: $WARMUP_REQUESTS" >> $log_file
         echo "Measurement Requests: $MEASUREMENT_REQUESTS" >> $log_file
-        echo "End Time: $(get_timestamp)" >> $log_file
+        echo "End Time: $(date '+%Y-%m-%d %H:%M:%S')" >> $log_file
         echo "CSV Log: $csv_file" >> $log_file
         
         echo "HTTP/3 results saved to $log_file"
@@ -467,7 +327,7 @@ ls -la $LOG_DIR/h*_*.log
 # Generate summary report
 echo ""
 echo "=== SUMMARY REPORT ==="
-echo "Generated at: $(get_timestamp)"
+echo "Generated at: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "Total test cases: ${#TEST_CASES[@]}"
 echo "Log directory: $LOG_DIR"
 echo ""
@@ -510,51 +370,19 @@ echo "ベンチマーク + グラフ生成が正常に完了しました"
 echo "結果: $LATEST_LOG_DIR"
 echo "================================================"
 
-# === 4区間のネットワーク統計取得 ===
-echo "[ホスト] 4区間ネットワーク統計を取得中..."
+# 基本的なネットワーク統計を取得
+echo "[ホスト] 基本的なネットワーク統計を取得中..."
 
 # クライアント→ルーター
-# クライアントからルーターへのping
-( docker exec grpc-client ping -c 10 172.30.0.254 > "$LATEST_LOG_DIR/ping_client_to_router.txt" 2>&1 ) &
-# クライアント側のip統計
-( docker exec grpc-client ip -s link show eth0 > "$LATEST_LOG_DIR/ip_client_eth0.txt" 2>&1 ) &
-# ルーター側のip統計
-( docker exec grpc-router ip -s link show eth0 > "$LATEST_LOG_DIR/ip_router_eth0.txt" 2>&1 ) &
+docker exec grpc-client ping -c 5 172.30.0.254 > "$LATEST_LOG_DIR/ping_client_to_router.txt" 2>&1
+docker exec grpc-client ip -s link show eth0 > "$LATEST_LOG_DIR/ip_client_eth0.txt" 2>&1
 
 # ルーター→サーバー
-# ルーターからサーバーへのping
-( docker exec grpc-router ping -c 10 172.30.0.2 > "$LATEST_LOG_DIR/ping_router_to_server.txt" 2>&1 ) &
-# サーバー側のip統計
-( docker exec grpc-server ip -s link show eth0 > "$LATEST_LOG_DIR/ip_server_eth0.txt" 2>&1 ) &
+docker exec grpc-router ping -c 5 172.30.0.2 > "$LATEST_LOG_DIR/ping_router_to_server.txt" 2>&1
+docker exec grpc-server ip -s link show eth0 > "$LATEST_LOG_DIR/ip_server_eth0.txt" 2>&1
 
-# サーバー→ルーター
-# サーバーからルーターへのping
-( docker exec grpc-server ping -c 10 172.30.0.254 > "$LATEST_LOG_DIR/ping_server_to_router.txt" 2>&1 ) &
-
-# ルーター→クライアント
-# ルーターからクライアントへのping
-( docker exec grpc-router ping -c 10 172.30.0.3 > "$LATEST_LOG_DIR/ping_router_to_client.txt" 2>&1 ) &
-# クライアント側のip統計（再取得）
-( docker exec grpc-client ip -s link show eth0 > "$LATEST_LOG_DIR/ip_client_eth0_after.txt" 2>&1 ) &
-
-wait
-echo "[ホスト] 4区間ネットワーク統計の取得が完了しました。"
-
-# === 4区間ネットワーク統計の可視化 ===
-echo "[ホスト] 4区間ネットワーク統計の可視化を実行..."
-python3 scripts/visualize_network_stats.py "$LATEST_LOG_DIR"
-
+echo "[ホスト] ネットワーク統計の取得が完了しました。"
 echo "================================================"
-echo "完全自動化完了: $(date)"
-echo "ベンチマーク + グラフ生成が正常に完了しました"
-echo "結果: $LATEST_LOG_DIR"
-echo "================================================"
-
-# === ルーター全インターフェース統計を取得 ===
-docker exec grpc-router ip -s link show > "$LATEST_LOG_DIR/ip_router_all.txt"
-
-echo "================================================"
-echo "完全自動化完了: $(date)"
-echo "ベンチマーク + グラフ生成が正常に完了しました"
+echo "ベンチマーク完了: $(date)"
 echo "結果: $LATEST_LOG_DIR"
 echo "================================================" 
