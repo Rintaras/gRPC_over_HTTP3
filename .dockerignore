@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+PROJECT_DOCUMENTATION.md
+*.md
+
+# IDE
+.vscode
+*.code-workspace
+.DS_Store
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Logs
+logs/
+*.log
+
+# Certificates (for development only)
+certs/
+
+# Local development
+local-quiche/
+9350.35
+
+# Seminar materials
+Seminer/
+
+# Results
+0rtt_results/
+0rtt_results_new/
+
+# Temporary files
+curl_http3_*.log
