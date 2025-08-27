@@ -14,5 +14,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    
+    - name: Build Server Docker image
+      run: docker build ./server --file ./server/Dockerfile --tag server:$(date +%s)
+      
+    - name: Build Client Docker image
+      run: docker build ./client --file ./client/Dockerfile --tag client:$(date +%s)
+      
+    - name: Build Router Docker image
+      run: docker build ./router --file ./router/Dockerfile --tag router:$(date +%s)
+      
+    - name: Build Main Docker image
+      run: docker build . --file Dockerfile --tag main:$(date +%s)
+      
+    - name: List built images
+      run: docker images
