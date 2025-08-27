@@ -22,13 +22,13 @@ echo "[INFO] ログディレクトリ: $LOG_DIR"
 SERVER_IP="172.30.0.2"
 ROUTER_IP="172.30.0.254"
 
-# Test cases with more extreme conditions for HTTP/3 advantage
+# Test cases with consistent 3% packet loss and varying delays
 # Limited to 4 cases for time efficiency and consistency
 TEST_CASES=(
-    "0 0"      # Ideal conditions
-    "50 0"     # Moderate delay
-    "100 1"    # High delay, low loss
-    "150 3"    # High delay, moderate loss
+    "0 3"      # 0ms delay, 3% loss
+    "75 3"     # 75ms delay, 3% loss
+    "150 3"    # 150ms delay, 3% loss
+    "225 3"    # 225ms delay, 3% loss
 )
 
 # Benchmark parameters (optimized for HTTP/3 connection time improvement)
@@ -488,20 +488,20 @@ echo "================================================"
 
 # ホスト側で最新のベンチマークディレクトリを取得してグラフ生成
 LATEST_LOG_DIR=$(ls -1td logs/benchmark_* | head -n1)
-echo "[ホスト] グラフ自動生成: python3 scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
+echo "[ホスト] グラフ自動生成: python3 scripts/simple_graph_generator.py $LATEST_LOG_DIR"
 
 # グラフ生成の実行（エラーハンドリング付き）
 echo "[ホスト] グラフ生成を開始..."
 
 # グラフ生成を実行
-if source venv/bin/activate && python3 scripts/generate_performance_graphs.py "$LATEST_LOG_DIR"; then
+if source venv/bin/activate && python3 scripts/simple_graph_generator.py "$LATEST_LOG_DIR"; then
     echo "✅ グラフ生成が正常に完了しました"
     echo "生成されたグラフファイル:"
     ls -la "$LATEST_LOG_DIR"/*.png 2>/dev/null || echo "グラフファイルが見つかりません"
 else
     echo "❌ グラフ生成でエラーが発生しました"
     echo "手動でグラフ生成を実行してください:"
-    echo "source venv/bin/activate && python3 scripts/generate_performance_graphs.py $LATEST_LOG_DIR"
+    echo "source venv/bin/activate && python3 scripts/simple_graph_generator.py $LATEST_LOG_DIR"
 fi
 
 echo "================================================"
