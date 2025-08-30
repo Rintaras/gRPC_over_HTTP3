@@ -25,7 +25,15 @@ def parse_csv_data(csv_file):
     response_times = []
     try:
         with open(csv_file, 'r') as f:
-            reader = csv.reader(f, delimiter='\t')
+            # Try comma first, then tab as fallback
+            content = f.read()
+            if ',' in content:
+                delimiter = ','
+            else:
+                delimiter = '\t'
+            
+            f.seek(0)  # Reset file pointer
+            reader = csv.reader(f, delimiter=delimiter)
             for row in reader:
                 if len(row) >= 3:
                     try:
@@ -121,6 +129,11 @@ def generate_graphs(benchmark_dir):
     if not h2_means:
         print("No valid data for graph generation")
         return
+    
+    print(f"Debug: Found {len(conditions)} conditions: {conditions}")
+    print(f"Debug: h2_means: {h2_means}")
+    print(f"Debug: h3_means: {h3_means}")
+    print(f"Debug: condition_labels: {condition_labels}")
     
     # Create the graph
     plt.figure(figsize=(12, 8))
