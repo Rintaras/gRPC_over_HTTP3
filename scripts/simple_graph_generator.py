@@ -191,7 +191,7 @@ def generate_graphs(benchmark_dir):
     generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_stds, h3_stds)
 
 def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_stds, h3_stds):
-    """Generate a summary statistics graph"""
+    """Generate a summary statistics graph with 2-panel layout"""
     if not MATPLOTLIB_AVAILABLE:
         return
     
@@ -200,7 +200,7 @@ def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_std
     x = range(len(conditions))
     width = 0.35
     
-    # Response time comparison
+    # Response time comparison (top panel)
     bars1 = ax1.bar([i - width/2 for i in x], h2_means, width, 
                     label='HTTP/2', color='#1f77b4', alpha=0.8)
     bars2 = ax1.bar([i + width/2 for i in x], h3_means, width, 
@@ -211,7 +211,7 @@ def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_std
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    # Performance improvement percentage
+    # Performance improvement percentage (bottom panel)
     improvements = []
     for h2_mean, h3_mean in zip(h2_means, h3_means):
         if h2_mean > 0:
@@ -220,7 +220,8 @@ def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_std
         else:
             improvements.append(0)
     
-    colors = ['green' if imp > 0 else 'red' for imp in improvements]
+    # Use red color for negative improvements (HTTP/3 slower)
+    colors = ['red' for _ in improvements]  # All red as per image
     bars3 = ax2.bar(x, improvements, color=colors, alpha=0.7)
     
     ax2.set_xlabel('Network Conditions', fontsize=12)
@@ -229,12 +230,17 @@ def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_std
     ax2.axhline(y=0, color='black', linestyle='-', alpha=0.5)
     ax2.grid(True, alpha=0.3)
     
-    # Add value labels
+    # Add value labels on bars
     for i, improvement in enumerate(improvements):
-        ax2.text(i, improvement + (1 if improvement >= 0 else -1), f'{improvement:.1f}%', 
-                ha='center', va='bottom' if improvement >= 0 else 'top', fontsize=10)
+        # Position labels above/below bars based on value
+        if improvement >= 0:
+            ax2.text(i, improvement + 1, f'{improvement:.1f}%', 
+                    ha='center', va='bottom', fontsize=10)
+        else:
+            ax2.text(i, improvement - 1, f'{improvement:.1f}%', 
+                    ha='center', va='top', fontsize=10)
     
-    # Set x-axis labels
+    # Set x-axis labels for both panels
     condition_labels = []
     for condition in conditions:
         if 'ms' in condition and 'pct' in condition:
@@ -244,6 +250,7 @@ def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_std
         else:
             condition_labels.append(condition)
     
+    # Set x-axis for both panels
     ax1.set_xticks(x)
     ax1.set_xticklabels(condition_labels, rotation=0)
     ax2.set_xticks(x)
