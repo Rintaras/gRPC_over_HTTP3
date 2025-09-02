@@ -15,6 +15,35 @@ Docker Composeで3ノード(client, router, server)構成を作成し、自動�
 - **証明書**: OpenSSL (自己署名)
 - **HTTP/3ライブラリ**: quictls, ngtcp2, nghttp3
 
+## CI/CD 概要
+
+GitHub Actions により次を自動化しています。
+
+- CI: Python の Lint（flake8）、`scripts/*.py` のインポート実行チェック、Rust（`quiche-client`）のビルド/Clippy、Docker（`server`/`client`/`router`）のビルド検証
+- CD: GHCR への `server`/`client`/`router` イメージ push（`latest` と短縮 SHA タグ）。SSH デプロイはシークレットが揃っている場合のみ実行
+
+### ワークフロー定義
+
+- `/.github/workflows/ci.yml`
+  - トリガー: `push`/`pull_request`（`main`）
+  - Python 3.13 設定、`flake8` 実行
+  - `scripts/*.py` のインポート実行スモークテスト
+  - Rust ツールチェーン設定、`cargo build` と `cargo clippy -D warnings`
+  - Docker Buildx による 3 イメージのビルド（push 無し）
+
+- `/.github/workflows/cd.yml`
+  - トリガー: `main` への push（イメージ関連ファイルに変更がある場合）
+  - GHCR ログインして `server`/`client`/`router` を push
+  - シークレット `DEPLOY_HOST`/`DEPLOY_USER`/`DEPLOY_KEY` が設定されていれば SSH 経由で `docker compose pull && up -d`
+
+### 必要シークレット（任意）
+
+- `DEPLOY_HOST`: デプロイ先のホスト名または IP
+- `DEPLOY_USER`: SSH ユーザー
+- `DEPLOY_KEY`: OpenSSH 秘密鍵（`id_ed25519` 推奨）
+
+`GITHUB_TOKEN` は自動付与され、GHCR への push に使用されます。
+
 ## プロジェクト構成
 
 ```
