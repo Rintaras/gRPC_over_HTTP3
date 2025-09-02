@@ -83,9 +83,9 @@ RUN git clone --depth 1 --branch v1.0.0 https://github.com/ngtcp2/nghttp3.git \
     && make install \
     && ldconfig
 
-# Copy configuration files
-COPY server/nginx.conf /opt/nginx-h3/conf/nginx.conf
-COPY server/proto /opt/nginx-h3/proto/
+# Copy configuration files (paths are relative to build context: server/)
+COPY nginx.conf /opt/nginx-h3/conf/nginx.conf
+COPY proto /opt/nginx-h3/proto/
 
 # Set working directory
 WORKDIR /opt/nginx-h3
@@ -95,6 +95,3 @@ EXPOSE 80 443
 
 # Start nginx in foreground
 CMD ["/opt/nginx-h3/sbin/nginx", "-g", "daemon off;"] 
-
-COPY ../scripts/sync_time.sh /usr/local/bin/sync_time.sh
-RUN chmod +x /usr/local/bin/sync_time.sh 
