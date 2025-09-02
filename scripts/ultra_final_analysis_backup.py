@@ -1269,10 +1269,11 @@ def main():
     
         print("\nレポート生成開始")
         analyzer.generate_ultra_report()
-    
+
         print(f"\n分析完了: {args.log_dir}")
     else:
         print("有効な結果がありませんでした")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

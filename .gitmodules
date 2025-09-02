@@ -1,0 +1,3 @@
+[submodule "quiche-client"]
+	path = quiche-client
+	url = https://github.com/cloudflare/quiche.git
