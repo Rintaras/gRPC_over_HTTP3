@@ -42,6 +42,9 @@
 - **CSV**: データ保存形式
 - **PNG**: グラフ出力形式
 
+### CI/CD
+- **GitHub Actions**: CI（Python flake8/Rust build・clippy/Docker build）と CD（GHCR push、任意の SSH デプロイ）
+
 ## 実験環境
 
 ### ローカル環境（Docker）
@@ -115,6 +118,23 @@ docker-compose up -d
 # ベンチマーク実行
 ./scripts/run_bench.sh
 ```
+
+## CI/CD の使い方
+
+### CI
+- `main` ブランチへの push または PR で自動実行
+- flake8、Rust ビルド/Clippy、Docker イメージビルドを検証
+
+### CD（GHCR）
+- `main` へ push で `server/client/router` を GHCR に push
+- タグは `latest` とコミット短縮 SHA
+
+### 任意の SSH デプロイ
+GitHub リポジトリの Secrets に以下を設定すると、`docker compose pull && up -d` を自動実行します。
+
+- `DEPLOY_HOST`: ホスト
+- `DEPLOY_USER`: ユーザー
+- `DEPLOY_KEY`: OpenSSH 秘密鍵（`id_ed25519` 推奨）
 
 ### Raspberry Pi環境
 ```bash
