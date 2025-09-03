@@ -132,7 +132,7 @@ run_http2_bench() {
     
     # Create temporary data file for h2load
     local temp_data_file="/tmp/benchmark_data_$$"
-    echo "$REQUEST_DATA" > "$temp_data_file"
+    docker exec grpc-client bash -c "echo '$REQUEST_DATA' > '$temp_data_file'"
     
     # Fair comparison: Establish connections first, then measure
     echo "Establishing HTTP/2 connections for fair comparison..."
@@ -162,7 +162,7 @@ run_http2_bench() {
         https://$SERVER_IP/echo" >> $log_file 2>&1
     
     # Clean up temporary file
-    rm "$temp_data_file"
+    docker exec grpc-client bash -c "rm '$temp_data_file'"
     
     # Add summary at the end
     echo "" >> $log_file
@@ -193,7 +193,7 @@ run_http3_bench() {
     
     # Create temporary data file for h2load
     local temp_data_file="/tmp/benchmark_data_$$"
-    echo "$REQUEST_DATA" > "$temp_data_file"
+    docker exec grpc-client bash -c "echo '$REQUEST_DATA' > '$temp_data_file'"
     
     # Fair comparison: Establish connections first, then measure
     echo "Establishing HTTP/3 connections for fair comparison..."
@@ -225,7 +225,7 @@ run_http3_bench() {
         https://$SERVER_IP/echo" >> $log_file 2>&1
     
     # Clean up temporary file
-    rm "$temp_data_file"
+    docker exec grpc-client bash -c "rm '$temp_data_file'"
     
     # Check if h2load succeeded and analyze protocol usage
     if grep -q "succeeded, 0 failed" $log_file; then
