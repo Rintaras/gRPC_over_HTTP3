@@ -100,6 +100,18 @@ def generate_graphs(benchmark_dir, debug: bool, dpi: int, only_conditions: list[
         print("No matching HTTP/2 and HTTP/3 files found")
         return
     
+    # Sort conditions by delay (0ms first, then ascending order)
+    def sort_key(condition):
+        if 'ms' in condition:
+            try:
+                delay = int(condition.split('ms')[0])
+                return delay
+            except ValueError:
+                return 999  # Put invalid conditions at the end
+        return 999
+    
+    conditions.sort(key=sort_key)
+    
     # Prepare data for plotting
     h2_means = []
     h3_means = []
@@ -107,7 +119,7 @@ def generate_graphs(benchmark_dir, debug: bool, dpi: int, only_conditions: list[
     h3_stds = []
     condition_labels = []
     
-    for condition in sorted(conditions):
+    for condition in conditions:
         h2_file = os.path.join(benchmark_dir, f"h2_{condition}.csv")
         h3_file = os.path.join(benchmark_dir, f"h3_{condition}.csv")
         
@@ -244,7 +256,7 @@ def generate_summary_graph(benchmark_dir, conditions, h2_means, h3_means, h2_std
             ax2.text(i, improvement - 1, f'{improvement:.1f}%', 
                     ha='center', va='top', fontsize=10)
     
-    # Set x-axis labels for both panels
+    # Set x-axis labels for both panels (use the same labels as main graph)
     condition_labels = []
     for condition in conditions:
         if 'ms' in condition and 'pct' in condition:
