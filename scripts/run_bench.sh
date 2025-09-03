@@ -9,11 +9,9 @@ echo "================================================"
 echo "ベンチマーク開始: $(date)"
 echo "================================================"
 
-# Execute the entire benchmark inside the client container
-docker exec grpc-client bash -c "
-# タイムスタンプ付きディレクトリ作成
+# Create timestamped log directory
 NOW=$(date +"%Y%m%d_%H%M%S")
-LOG_DIR="/logs/benchmark_${NOW}"
+LOG_DIR="logs/benchmark_${NOW}"
 mkdir -p $LOG_DIR
 
 echo "[INFO] ログディレクトリ: $LOG_DIR"
@@ -28,6 +26,9 @@ TEST_CASES=(
     "150 3"    # 150ms delay, 3% loss
     "225 3"    # 225ms delay, 3% loss
 )
+
+# Sort test cases by delay (ascending order) - already sorted correctly
+# TEST_CASES are already in correct order: 0ms, 75ms, 150ms, 225ms
 
 # Benchmark parameters
 REQUESTS=50000        # 総リクエスト数
@@ -133,38 +134,38 @@ run_http2_bench() {
     log_network_conditions $delay $loss $log_file
     
     # Create temporary data file for h2load
-    local temp_data_file=$(mktemp)
-    echo "$REQUEST_DATA" > "$temp_data_file"
+    local temp_data_file="/tmp/benchmark_data_$$"
+    docker exec grpc-client bash -c "echo '$REQUEST_DATA' > '$temp_data_file'"
     
     # Fair comparison: Establish connections first, then measure
     echo "Establishing HTTP/2 connections for fair comparison..."
     echo "=== CONNECTION ESTABLISHMENT PHASE ===" >> $log_file
     
     # Phase 1: Establish connections with warmup requests
-    h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
+    docker exec grpc-client bash -c "h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
-        --header "User-Agent: h2load-benchmark-warmup" \
-        --data "$temp_data_file" \
-        https://$SERVER_IP/echo >> $log_file 2>&1
+        --header 'User-Agent: h2load-benchmark-warmup' \
+        --data '$temp_data_file' \
+        https://$SERVER_IP/echo" >> $log_file 2>&1
     
     echo "Waiting ${CONNECTION_WARMUP_TIME}s for connections to stabilize..." >> $log_file
     sleep $CONNECTION_WARMUP_TIME
     
     echo "=== MEASUREMENT PHASE ===" >> $log_file
     # Phase 2: Measure performance with established connections
-    h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
+    docker exec grpc-client bash -c "h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
-        --header "User-Agent: h2load-benchmark-measurement" \
-        --data "$temp_data_file" \
-        --log-file "$csv_file" \
-        https://$SERVER_IP/echo >> $log_file 2>&1
+        --header 'User-Agent: h2load-benchmark-measurement' \
+        --data '$temp_data_file' \
+        --log-file '/logs/$(basename $csv_file)' \
+        https://$SERVER_IP/echo" >> $log_file 2>&1
     
     # Clean up temporary file
-    rm "$temp_data_file"
+    docker exec grpc-client bash -c "rm '$temp_data_file'"
     
     # Add summary at the end
     echo "" >> $log_file
@@ -194,40 +195,40 @@ run_http3_bench() {
     log_network_conditions $delay $loss $log_file
     
     # Create temporary data file for h2load
-    local temp_data_file=$(mktemp)
-    echo "$REQUEST_DATA" > "$temp_data_file"
+    local temp_data_file="/tmp/benchmark_data_$$"
+    docker exec grpc-client bash -c "echo '$REQUEST_DATA' > '$temp_data_file'"
     
     # Fair comparison: Establish connections first, then measure
     echo "Establishing HTTP/3 connections for fair comparison..."
     echo "=== CONNECTION ESTABLISHMENT PHASE ===" >> $log_file
     
     # Phase 1: Establish connections with warmup requests
-    h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
+    docker exec grpc-client bash -c "h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
-        --header "User-Agent: h2load-benchmark-warmup" \
-        --data "$temp_data_file" \
+        --header 'User-Agent: h2load-benchmark-warmup' \
+        --data '$temp_data_file' \
         --alpn-list=h3,h2 \
-        https://$SERVER_IP/echo >> $log_file 2>&1
+        https://$SERVER_IP/echo" >> $log_file 2>&1
     
     echo "Waiting ${CONNECTION_WARMUP_TIME}s for connections to stabilize..." >> $log_file
     sleep $CONNECTION_WARMUP_TIME
     
     echo "=== MEASUREMENT PHASE ===" >> $log_file
     # Phase 2: Measure performance with established connections
-    h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
+    docker exec grpc-client bash -c "h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
         --connect-to $SERVER_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
-        --header "User-Agent: h2load-benchmark-measurement" \
-        --data "$temp_data_file" \
+        --header 'User-Agent: h2load-benchmark-measurement' \
+        --data '$temp_data_file' \
         --alpn-list=h3,h2 \
-        --log-file "$csv_file" \
-        https://$SERVER_IP/echo >> $log_file 2>&1
+        --log-file '/logs/$(basename $csv_file)' \
+        https://$SERVER_IP/echo" >> $log_file 2>&1
     
     # Clean up temporary file
-    rm "$temp_data_file"
+    docker exec grpc-client bash -c "rm '$temp_data_file'"
     
     # Check if h2load succeeded and analyze protocol usage
     if grep -q "succeeded, 0 failed" $log_file; then
@@ -353,7 +354,6 @@ docker cp grpc-client:/logs/h3_150ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h
 docker cp grpc-client:/logs/h3_225ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3_225ms_3pct.csv not found"
 
 echo "CSV files copied successfully"
-"
 
 echo "================================================"
 echo "ベンチマーク完了: $(date)"
@@ -398,4 +398,4 @@ echo "[ホスト] ネットワーク統計の取得が完了しました。"
 echo "================================================"
 echo "ベンチマーク完了: $(date)"
 echo "結果: $LATEST_LOG_DIR"
-echo "================================================" 
+echo "================================================"
