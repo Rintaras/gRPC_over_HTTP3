@@ -339,6 +339,19 @@ done
 
 echo "Benchmark complete! Check the reports and graphs in $LOG_DIR"
 
+# Copy CSV files from Docker container to host
+echo "Copying CSV files from Docker container..."
+docker cp grpc-client:/logs/h2_0ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h2_0ms_3pct.csv not found"
+docker cp grpc-client:/logs/h2_75ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h2_75ms_3pct.csv not found"
+docker cp grpc-client:/logs/h2_150ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h2_150ms_3pct.csv not found"
+docker cp grpc-client:/logs/h2_225ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h2_225ms_3pct.csv not found"
+docker cp grpc-client:/logs/h3_0ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3_0ms_3pct.csv not found"
+docker cp grpc-client:/logs/h3_75ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3_75ms_3pct.csv not found"
+docker cp grpc-client:/logs/h3_150ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3_150ms_3pct.csv not found"
+docker cp grpc-client:/logs/h3_225ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3_225ms_3pct.csv not found"
+
+echo "CSV files copied successfully"
+
 echo "================================================"
 echo "ベンチマーク完了: $(date)"
 echo "================================================"
