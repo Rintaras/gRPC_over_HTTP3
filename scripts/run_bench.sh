@@ -10,7 +10,7 @@ echo "ベンチマーク開始: $(date)"
 echo "================================================"
 
 # Execute the entire benchmark inside the client container
-docker exec grpc-client bash -c '
+docker exec grpc-client bash -c "
 # タイムスタンプ付きディレクトリ作成
 NOW=$(date +"%Y%m%d_%H%M%S")
 LOG_DIR="/logs/benchmark_${NOW}"
@@ -61,7 +61,7 @@ echo "================================================"
 mkdir -p "$LOG_DIR"
 
 # ベンチマークパラメータをテキストファイルに保存
-cat <<EOF > "$LOG_DIR/benchmark_params.txt"
+cat > "$LOG_DIR/benchmark_params.txt" << EOF
 REQUESTS=$REQUESTS
 CONNECTIONS=$CONNECTIONS
 THREADS=$THREADS
@@ -340,7 +340,7 @@ for log_file in $LOG_DIR/h*_*.log; do
 done
 
 echo "Benchmark complete! Check the reports and graphs in $LOG_DIR"
-'
+"
 
 echo "================================================"
 echo "ベンチマーク完了: $(date)"
