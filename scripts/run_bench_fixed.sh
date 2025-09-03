@@ -158,7 +158,7 @@ run_http2_bench() {
         --connection-inactivity-timeout 60 \
         --header 'User-Agent: h2load-benchmark-measurement' \
         --data '$temp_data_file' \
-        --log-file '$csv_file' \
+        --log-file '/logs/$(basename $csv_file)' \
         https://$SERVER_IP/echo" >> $log_file 2>&1
     
     # Clean up temporary file
@@ -221,7 +221,7 @@ run_http3_bench() {
         --header 'User-Agent: h2load-benchmark-measurement' \
         --data '$temp_data_file' \
         --alpn-list=h3,h2 \
-        --log-file '$csv_file' \
+        --log-file '/logs/$(basename $csv_file)' \
         https://$SERVER_IP/echo" >> $log_file 2>&1
     
     # Clean up temporary file
