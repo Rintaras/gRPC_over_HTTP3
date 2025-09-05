@@ -1,7 +1,7 @@
 # HTTP/3 vs HTTP/2 Performance Benchmark
 
 ## 概要
-このプロジェクトは、HTTP/3とHTTP/2の性能比較をDocker環境で実施するベンチマークツールです。Raspberry Piサーバーとの比較実験も含む包括的な性能評価システムです。
+このプロジェクトは、HTTP/3とHTTP/2の性能比較をDocker環境で実施するベンチマークツールです。Docker環境とRaspberry Pi 5実機サーバーとの比較実験も含む包括的な性能評価システムです。
 
 ## 技術スタック
 
@@ -52,11 +52,11 @@
 - **ルーター**: ネットワークエミュレーション（tc/netem）
 - **サーバー**: nginx + quiche HTTP/3サーバー
 
-### リモート環境（Raspberry Pi）
-- **IPアドレス**: 172.20.10.4
-- **サーバー**: nginx + quiche HTTP/3サーバー
+### リモート環境（Raspberry Pi 5）
+- **IPアドレス**: 172.30.0.2
+- **サーバー**: nginx + HTTP/3対応サーバー
 - **証明書**: 自己署名TLS証明書（IPアドレス対応）
-- **ポート**: HTTP/2 (443), HTTP/3 (4433)
+- **ポート**: HTTP/2 (443), HTTP/3 (443)
 
 ## ベンチマークスクリプト
 
@@ -69,14 +69,14 @@
 - **接続数**: 100、スレッド数: 20
 - 出力: `logs/benchmark_YYYYMMDD_HHMMSS/`
 
-### 2. Raspberry Piサーバーベンチマーク
+### 2. Raspberry Pi 5実機サーバーベンチマーク
 ```bash
-./scripts/run_raspberry_pi_bench.sh
+./scripts/run_bench_raspberry_pi.sh
 ```
-- リモートRaspberry Piサーバーに対するベンチマーク
+- リモートRaspberry Pi 5実機サーバーに対するベンチマーク
 - 同じネットワーク条件での性能比較
-- HTTP/2（nginx）とHTTP/3（quiche）の両方でテスト
-- 出力: `logs/raspberry_pi_benchmark_YYYYMMDD_HHMMSS/`
+- HTTP/2（nginx）とHTTP/3（nginx）の両方でテスト
+- 出力: `logs/benchmark_raspberry_pi_YYYYMMDD_HHMMSS/`
 
 ### 3. 軽量テスト（開発・テスト用）
 ```bash
@@ -145,17 +145,22 @@ GitHub リポジトリの Secrets に以下を設定すると、`docker compose 
 - `DEPLOY_USER`: ユーザー
 - `DEPLOY_KEY`: OpenSSH 秘密鍵（`id_ed25519` 推奨）
 
-### Raspberry Pi環境
+### Raspberry Pi 5環境
 ```bash
-# サーバーセットアップ（Raspberry Pi上）
+# サーバーセットアップ（Raspberry Pi 5上）
+wget https://raw.githubusercontent.com/your-repo/gRPC_over_HTTP3/main/scripts/raspberry_pi_setup.sh
+chmod +x raspberry_pi_setup.sh
+sudo ./raspberry_pi_setup.sh
+
+# または手動セットアップ
 sudo apt update
-sudo apt install -y nginx openssl rust cargo libclang-dev
+sudo apt install -y nginx openssl build-essential cmake pkg-config libssl-dev
 
 # 証明書生成
-openssl req -x509 -newkey rsa:4096 -keyout nginx-http3.key -out nginx-http3.crt -days 365 -nodes -subj "/CN=172.20.10.4" -addext "subjectAltName=IP:172.20.10.4"
+openssl req -x509 -newkey rsa:2048 -keyout /etc/ssl/private/grpc-server.key -out /etc/ssl/certs/grpc-server.crt -days 365 -nodes -subj "/CN=grpc-server-pi.local"
 
-# quiche HTTP/3サーバー起動
-cargo run --bin quiche-server -- --cert nginx-http3.crt --key nginx-http3.key --listen 0.0.0.0:4433
+# nginx HTTP/3サーバー起動
+sudo systemctl start nginx
 ```
 
 ## 重要な発見・成果
@@ -204,17 +209,24 @@ cargo run --bin quiche-server -- --cert nginx-http3.crt --key nginx-http3.key --
 - 証明書のSubjectAltName設定
 - Docker Compose設定の確認
 
+## ドキュメント
+
+- [Raspberry Pi 5 セットアップガイド](RASPBERRY_PI_SETUP.md) - 詳細なセットアップ手順
+- [Raspberry Pi 5 プロジェクトREADME](README_RASPBERRY_PI.md) - Raspberry Pi 5専用ドキュメント
+
 ## 今後の開発予定
 
 ### 短期目標
 - [ ] より多くのネットワーク条件でのテスト
 - [ ] 統計的有意性検定の実装
 - [ ] リアルタイムモニタリングの追加
+- [ ] Raspberry Pi 5実機環境での性能比較
 
 ### 長期目標
 - [ ] クラウド環境での大規模テスト
 - [ ] 機械学習による性能予測
 - [ ] 他のQUIC実装との比較
+- [ ] 複数デバイスでの負荷分散テスト
 
 ## ライセンス
 MIT License
