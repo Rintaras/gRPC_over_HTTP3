@@ -48,7 +48,7 @@ gRPC_over_HTTP3/
 2. SSHを有効化
 3. 固定IPアドレスを設定 (推奨: 172.30.0.2/24)
 
-### 2. サーバーソフトウェアの構築
+### 2. サーバーソフトウェアの構築（ネイティブインストール）
 
 Raspberry Pi 5にSSH接続して以下のコマンドを実行：
 
@@ -59,9 +59,11 @@ chmod +x raspberry_pi_setup.sh
 sudo ./raspberry_pi_setup.sh
 ```
 
+**注意**: Raspberry Pi 5ではDockerを使用せず、ネイティブインストールのみです。
+
 ### 3. ネットワーク設定
 
-#### Dockerネットワーク設定
+#### Dockerネットワーク設定（クライアント側）
 ```bash
 # 既存のDockerネットワーク確認
 docker network ls
@@ -70,11 +72,23 @@ docker network ls
 docker network create --subnet=172.30.0.0/24 grpc-benchmark
 ```
 
-#### ルーター設定の調整
+#### ルーター設定の調整（クライアント側）
 ```bash
 # ルーターコンテナの設定確認
 docker exec grpc-router ip route show
 docker exec grpc-router iptables -L
+```
+
+#### Raspberry Pi 5側の設定
+```bash
+# 固定IP設定（Raspberry Pi 5上で実行）
+sudo nano /etc/dhcpcd.conf
+
+# 以下を追加
+interface eth0
+static ip_address=172.30.0.2/24
+static routers=172.30.0.254
+static domain_name_servers=8.8.8.8
 ```
 
 ### 4. ベンチマーク実行
@@ -127,7 +141,7 @@ curl -k --http3 https://172.30.0.2/echo
 
 ## 監視とログ
 
-### システム監視
+### システム監視（Raspberry Pi 5上で実行）
 ```bash
 # CPU使用率
 htop
@@ -140,6 +154,12 @@ nethogs
 
 # システム状態確認
 /usr/local/bin/monitor_raspberry_pi.sh
+
+# Nginx状態確認
+sudo systemctl status nginx
+
+# アクティブ接続数確認
+ss -tuln | grep :443
 ```
 
 ### ログファイル
