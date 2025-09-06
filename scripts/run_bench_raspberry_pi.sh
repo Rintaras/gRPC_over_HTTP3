@@ -18,7 +18,7 @@ mkdir -p $LOG_DIR
 echo "[INFO] ログディレクトリ: $LOG_DIR"
 
 # Network configuration
-RASPBERRY_PI_IP="192.168.2.100"  # Raspberry Pi 5 IP address
+RASPBERRY_PI_IP="192.168.2.150"  # Raspberry Pi 5 IP address
 ROUTER_IP="172.30.0.254"      # Docker router IP
 
 # Test cases with consistent 3% packet loss and varying delays

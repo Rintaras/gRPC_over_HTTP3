@@ -10,7 +10,7 @@ echo "ベンチマーク開始: $(date)"
 echo "================================================"
 
 # 設定
-RASPBERRY_PI_IP="192.168.2.100"
+RASPBERRY_PI_IP="192.168.2.150"
 ROUTER_IP="172.30.0.254"
 CLIENT_CONTAINER="grpc-client"
 ROUTER_CONTAINER="grpc-router"
