@@ -54,9 +54,10 @@
 
 ### リモート環境（Raspberry Pi 5）
 - **IPアドレス**: 172.30.0.2
-- **サーバー**: nginx + HTTP/3対応サーバー
+- **サーバー**: nginx + HTTP/3対応サーバー（ネイティブインストール）
 - **証明書**: 自己署名TLS証明書（IPアドレス対応）
 - **ポート**: HTTP/2 (443), HTTP/3 (443)
+- **インストール**: Docker不使用、ネイティブインストール
 
 ## ベンチマークスクリプト
 
@@ -145,14 +146,14 @@ GitHub リポジトリの Secrets に以下を設定すると、`docker compose 
 - `DEPLOY_USER`: ユーザー
 - `DEPLOY_KEY`: OpenSSH 秘密鍵（`id_ed25519` 推奨）
 
-### Raspberry Pi 5環境
+### Raspberry Pi 5環境（ネイティブインストール）
 ```bash
 # サーバーセットアップ（Raspberry Pi 5上）
 wget https://raw.githubusercontent.com/your-repo/gRPC_over_HTTP3/main/scripts/raspberry_pi_setup.sh
 chmod +x raspberry_pi_setup.sh
 sudo ./raspberry_pi_setup.sh
 
-# または手動セットアップ
+# または手動セットアップ（Docker不使用）
 sudo apt update
 sudo apt install -y nginx openssl build-essential cmake pkg-config libssl-dev
 
@@ -162,6 +163,8 @@ openssl req -x509 -newkey rsa:2048 -keyout /etc/ssl/private/grpc-server.key -out
 # nginx HTTP/3サーバー起動
 sudo systemctl start nginx
 ```
+
+**注意**: Raspberry Pi 5ではDockerを使用せず、ネイティブインストールのみです。
 
 ## 重要な発見・成果
 
