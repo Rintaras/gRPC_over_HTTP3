@@ -19,8 +19,8 @@ fi
 echo "Updating system packages..."
 apt update && apt upgrade -y
 
-# Install required packages
-echo "Installing required packages..."
+# Install required packages (Native installation, no Docker)
+echo "Installing required packages (Native installation)..."
 apt install -y \
     nginx \
     nginx-extras \
@@ -51,7 +51,8 @@ apt install -y \
     libh2o-evloop-dev \
     htop \
     iotop \
-    nethogs
+    nethogs \
+    systemd
 
 # Create nginx user
 echo "Creating nginx user..."
