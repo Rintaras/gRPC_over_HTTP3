@@ -163,9 +163,9 @@ ss -tuln | grep :443
 ```
 
 ### ログファイル
-- Nginxアクセスログ: `/var/log/nginx/access.log`
-- Nginxエラーログ: `/var/log/nginx/error.log`
-- ベンチマークログ: `logs/benchmark_raspberry_pi_YYYYMMDD_HHMMSS/`
+- Nginxアクセスログ: `/var/log/nginx/access.log` (Raspberry Pi 5上)
+- Nginxエラーログ: `/var/log/nginx/error.log` (Raspberry Pi 5上)
+- ベンチマークログ: `logs/benchmark_raspberry_pi_YYYYMMDD_HHMMSS/` (クライアント側)
 
 ## トラブルシューティング
 
@@ -192,6 +192,7 @@ ss -tuln | grep :443
 
 ### デバッグコマンド
 
+#### クライアント側（Docker環境）
 ```bash
 # 接続確認
 telnet 172.30.0.2 443
@@ -201,9 +202,22 @@ openssl s_client -connect 172.30.0.2:443 -servername grpc-server-pi.local
 
 # HTTP/3確認
 curl -k --http3 -v https://172.30.0.2/echo
+```
 
+#### Raspberry Pi 5側（ネイティブ環境）
+```bash
 # システム状態確認
-systemctl status nginx
+sudo systemctl status nginx
+
+# ポート確認
+sudo ss -tuln | grep :443
+
+# ログ確認
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+
+# プロセス確認
+ps aux | grep nginx
 ```
 
 ## セキュリティ考慮事項
