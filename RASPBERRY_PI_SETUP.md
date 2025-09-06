@@ -36,17 +36,30 @@ sudo raspi-config
 # - ホスト名設定: grpc-server-pi
 ```
 
-#### 1.3 ネットワーク設定
+#### 1.3 ネットワーク設定（無線LAN）
 ```bash
-# 固定IP設定
+# 無線LAN固定IP設定
 sudo nano /etc/dhcpcd.conf
 
-# 以下を追加
+# 以下を追加（無線LANインターフェース）
+interface wlan0
+static ip_address=172.30.0.2/24
+static routers=172.30.0.254
+static domain_name_servers=8.8.8.8
+
+# または、有線LANと無線LANの両方に対応
 interface eth0
 static ip_address=172.30.0.2/24
 static routers=172.30.0.254
 static domain_name_servers=8.8.8.8
+
+interface wlan0
+static ip_address=172.30.0.2/24
+static routers=172.30.0.254
+static domain_name_servers=8.8.8.8
 ```
+
+**注意**: 無線LANと有線LANで同じIPアドレスを使用する場合は、同時に接続しないでください。
 
 ### 2. サーバーソフトウェアの構築
 
