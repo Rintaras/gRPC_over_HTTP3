@@ -228,6 +228,7 @@ sudo systemctl start nginx
 
 ### プロジェクト概要
 - [プロジェクトの目的](PROJECT_PURPOSE.md) - プロジェクトの目的と概要の詳細
+- [ベンチマークガイド](BENCHMARK_GUIDE.md) - Raspberry Pi 5サーバー検証・ベンチマーク実行ガイド
 
 ## 今後の開発予定
 
