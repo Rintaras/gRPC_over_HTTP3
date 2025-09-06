@@ -2,9 +2,11 @@
 
 # Raspberry Pi 5 Setup Script for gRPC over HTTP/3 Benchmark
 # This script should be run on the Raspberry Pi 5
+# Docker is NOT used on Raspberry Pi 5 - native installation only
 
 echo "================================================"
 echo "Raspberry Pi 5 Setup for gRPC over HTTP/3 Benchmark"
+echo "Native Installation (No Docker)"
 echo "================================================"
 
 # Check if running as root
