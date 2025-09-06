@@ -214,10 +214,20 @@ sudo systemctl start nginx
 
 ## ドキュメント
 
+### 技術ドキュメント
 - [Raspberry Pi 5 セットアップガイド](RASPBERRY_PI_SETUP.md) - 詳細なセットアップ手順
 - [Raspberry Pi 5 プロジェクトREADME](README_RASPBERRY_PI.md) - Raspberry Pi 5専用ドキュメント
 - [無線LAN設定ガイド](WIRELESS_SETUP.md) - 無線LAN接続時の設定手順
 - [ネットワークアーキテクチャ](NETWORK_ARCHITECTURE.md) - 通信の仕組み詳細
+
+### Cursor用ドキュメント
+- [Cursor用 セットアップガイド](CURSOR_RASPBERRY_PI_SETUP.md) - Cursorで構築するための詳細手順
+- [Cursor用 プロンプト集](CURSOR_PROMPTS.md) - 構築用プロンプトの完全版
+- [Cursor用 クイックスタート](CURSOR_QUICK_START.md) - 即座に使用できるプロンプト
+- [Cursor用 トラブルシューティング](CURSOR_TROUBLESHOOTING.md) - 問題解決ガイド
+
+### プロジェクト概要
+- [プロジェクトの目的](PROJECT_PURPOSE.md) - プロジェクトの目的と概要の詳細
 
 ## 今後の開発予定
 
