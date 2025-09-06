@@ -11,7 +11,7 @@
 ## 変更後の構成
 - **クライアント**: Dockerコンテナ (grpc-client) - 変更なし
 - **ルーター**: Dockerコンテナ (grpc-router) - 変更なし
-- **サーバー**: **Raspberry Pi 5実機** - 新規構築
+- **サーバー**: **Raspberry Pi 5実機（Docker不使用）** - 新規構築
 
 ## 必要な作業
 
@@ -55,12 +55,10 @@ static domain_name_servers=8.8.8.8
 # システム更新
 sudo apt update && sudo apt upgrade -y
 
-# 必要なパッケージ
+# 必要なパッケージ（Docker不使用）
 sudo apt install -y \
     nginx \
     nginx-extras \
-    certbot \
-    python3-certbot-nginx \
     curl \
     wget \
     git \
@@ -86,8 +84,9 @@ sudo apt install -y \
     libsqlite3-dev \
     libh2o-dev \
     libh2o-evloop-dev \
-    libh2o-dev \
-    libh2o-evloop-dev
+    htop \
+    iotop \
+    nethogs
 ```
 
 #### 2.2 Nginx HTTP/3対応ビルド
