@@ -216,6 +216,8 @@ sudo systemctl start nginx
 
 - [Raspberry Pi 5 セットアップガイド](RASPBERRY_PI_SETUP.md) - 詳細なセットアップ手順
 - [Raspberry Pi 5 プロジェクトREADME](README_RASPBERRY_PI.md) - Raspberry Pi 5専用ドキュメント
+- [無線LAN設定ガイド](WIRELESS_SETUP.md) - 無線LAN接続時の設定手順
+- [ネットワークアーキテクチャ](NETWORK_ARCHITECTURE.md) - 通信の仕組み詳細
 
 ## 今後の開発予定
 
