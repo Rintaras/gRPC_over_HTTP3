@@ -66,6 +66,21 @@ mkdir -p /var/www/html
 mkdir -p /etc/ssl/certs
 mkdir -p /etc/ssl/private
 
+# Check network interface (wired or wireless)
+echo "Checking network interface..."
+if ip link show wlan0 > /dev/null 2>&1; then
+    echo "Wireless interface (wlan0) detected"
+    NETWORK_INTERFACE="wlan0"
+elif ip link show eth0 > /dev/null 2>&1; then
+    echo "Wired interface (eth0) detected"
+    NETWORK_INTERFACE="eth0"
+else
+    echo "Warning: No standard network interface found"
+    NETWORK_INTERFACE="eth0"
+fi
+
+echo "Using network interface: $NETWORK_INTERFACE"
+
 # Set permissions
 chown -R nginx:nginx /var/log/nginx
 chown -R nginx:nginx /var/cache/nginx
@@ -245,15 +260,20 @@ fi
 
 # Set up monitoring script
 echo "Creating monitoring script..."
-cat > /usr/local/bin/monitor_raspberry_pi.sh << 'EOF'
+cat > /usr/local/bin/monitor_raspberry_pi.sh << EOF
 #!/bin/bash
 
 echo "=== Raspberry Pi 5 System Status ==="
-echo "Date: $(date)"
+echo "Date: \$(date)"
 echo ""
 
+echo "=== Network Interface ==="
+echo "Active interface: $NETWORK_INTERFACE"
+ip addr show $NETWORK_INTERFACE | grep inet
+
+echo ""
 echo "=== CPU Usage ==="
-top -bn1 | grep "Cpu(s)" | awk '{print $2}' | awk -F'%' '{print $1}'
+top -bn1 | grep "Cpu(s)" | awk '{print \$2}' | awk -F'%' '{print \$1}'
 
 echo ""
 echo "=== Memory Usage ==="
@@ -274,6 +294,14 @@ systemctl is-active nginx
 echo ""
 echo "=== Active Connections ==="
 ss -tuln | grep :443 | wc -l
+
+echo ""
+echo "=== Wireless Signal Strength ==="
+if [ "$NETWORK_INTERFACE" = "wlan0" ]; then
+    iwconfig wlan0 | grep -E "(ESSID|Signal|Quality)"
+else
+    echo "Wired connection - no signal strength available"
+fi
 EOF
 
 chmod +x /usr/local/bin/monitor_raspberry_pi.sh
@@ -301,13 +329,22 @@ EOF
 echo "================================================"
 echo "Raspberry Pi 5 setup completed!"
 echo "================================================"
+echo "Network Interface: $NETWORK_INTERFACE"
 echo "Server IP: $(hostname -I | awk '{print $1}')"
 echo "Nginx Status: $(systemctl is-active nginx)"
 echo "HTTP/2 Test: curl -k --http2 https://localhost/health"
 echo "HTTP/3 Test: curl -k --http3 https://localhost/health"
 echo "================================================"
 echo "Next steps:"
-echo "1. Configure static IP address"
+echo "1. Configure static IP address for $NETWORK_INTERFACE"
 echo "2. Update /etc/hosts on client machine"
 echo "3. Run benchmark script from client machine"
+echo "================================================"
+echo "Network Configuration:"
+echo "For wireless (wlan0):"
+echo "  sudo nano /etc/dhcpcd.conf"
+echo "  interface wlan0"
+echo "  static ip_address=172.30.0.2/24"
+echo "  static routers=172.30.0.254"
+echo "  static domain_name_servers=8.8.8.8"
 echo "================================================"

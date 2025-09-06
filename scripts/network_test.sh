@@ -189,19 +189,22 @@ show_raspberry_pi_status() {
             echo "SSH is available. You can manually check Raspberry Pi 5 status:"
             echo "  ssh pi@$RASPBERRY_PI_IP 'sudo systemctl status nginx'"
             echo "  ssh pi@$RASPBERRY_PI_IP 'sudo ss -tuln | grep :443'"
+            echo "  ssh pi@$RASPBERRY_PI_IP 'ip addr show wlan0'  # Check wireless interface"
         else
             echo "SSH not available. Please check Raspberry Pi 5 manually:"
             echo "  - nginx status: sudo systemctl status nginx"
             echo "  - port 443: sudo ss -tuln | grep :443"
             echo "  - logs: sudo tail -f /var/log/nginx/access.log"
+            echo "  - wireless: ip addr show wlan0"
         fi
     else
         echo "❌ Raspberry Pi 5 is not reachable"
         echo "Please check:"
         echo "  - Raspberry Pi 5 is powered on"
-        echo "  - Network cable is connected"
+        echo "  - Wireless connection is active"
         echo "  - IP address is correct: $RASPBERRY_PI_IP"
         echo "  - Raspberry Pi 5 is on the same network"
+        echo "  - Wireless signal strength is adequate"
     fi
     
     echo ""

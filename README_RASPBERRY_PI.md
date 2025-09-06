@@ -79,17 +79,25 @@ docker exec grpc-router ip route show
 docker exec grpc-router iptables -L
 ```
 
-#### Raspberry Pi 5側の設定
+#### Raspberry Pi 5側の設定（無線LAN）
 ```bash
 # 固定IP設定（Raspberry Pi 5上で実行）
 sudo nano /etc/dhcpcd.conf
 
-# 以下を追加
+# 無線LANの場合
+interface wlan0
+static ip_address=172.30.0.2/24
+static routers=172.30.0.254
+static domain_name_servers=8.8.8.8
+
+# 有線LANの場合（必要に応じて）
 interface eth0
 static ip_address=172.30.0.2/24
 static routers=172.30.0.254
 static domain_name_servers=8.8.8.8
 ```
+
+**注意**: 無線LANと有線LANで同じIPアドレスを使用する場合は、同時に接続しないでください。
 
 ### 4. ベンチマーク実行
 
