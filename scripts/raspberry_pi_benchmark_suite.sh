@@ -10,7 +10,7 @@ echo "スイート開始: $(date)"
 echo "================================================"
 
 # 設定
-RASPBERRY_PI_IP="172.30.0.2"
+RASPBERRY_PI_IP="192.168.2.100"
 ROUTER_IP="172.30.0.254"
 CLIENT_CONTAINER="grpc-client"
 ROUTER_CONTAINER="grpc-router"

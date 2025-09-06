@@ -18,7 +18,7 @@ mkdir -p $LOG_DIR
 echo "[INFO] ログディレクトリ: $LOG_DIR"
 
 # Network configuration
-RASPBERRY_PI_IP="172.30.0.2"  # Raspberry Pi 5 IP address
+RASPBERRY_PI_IP="192.168.2.100"  # Raspberry Pi 5 IP address
 ROUTER_IP="172.30.0.254"      # Docker router IP
 
 # Test cases with consistent 3% packet loss and varying delays
@@ -171,12 +171,10 @@ run_http2_bench() {
     
     # Phase 1: Establish connections with warmup requests
     docker exec grpc-client bash -c "h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connect-to $RASPBERRY_PI_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
         --header 'User-Agent: h2load-benchmark-warmup' \
         --data '$temp_data_file' \
-        --insecure \
         https://$RASPBERRY_PI_IP/echo" >> $log_file 2>&1
     
     echo "Waiting ${CONNECTION_WARMUP_TIME}s for connections to stabilize..." >> $log_file
@@ -185,12 +183,10 @@ run_http2_bench() {
     echo "=== MEASUREMENT PHASE ===" >> $log_file
     # Phase 2: Measure performance with established connections
     docker exec grpc-client bash -c "h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connect-to $RASPBERRY_PI_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
         --header 'User-Agent: h2load-benchmark-measurement' \
         --data '$temp_data_file' \
-        --insecure \
         --log-file '/logs/$(basename $csv_file)' \
         https://$RASPBERRY_PI_IP/echo" >> $log_file 2>&1
     
@@ -235,13 +231,11 @@ run_http3_bench() {
     
     # Phase 1: Establish connections with warmup requests
     docker exec grpc-client bash -c "h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connect-to $RASPBERRY_PI_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
         --header 'User-Agent: h2load-benchmark-warmup' \
         --data '$temp_data_file' \
         --alpn-list=h3,h2 \
-        --insecure \
         https://$RASPBERRY_PI_IP/echo" >> $log_file 2>&1
     
     echo "Waiting ${CONNECTION_WARMUP_TIME}s for connections to stabilize..." >> $log_file
@@ -250,13 +244,11 @@ run_http3_bench() {
     echo "=== MEASUREMENT PHASE ===" >> $log_file
     # Phase 2: Measure performance with established connections
     docker exec grpc-client bash -c "h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connect-to $RASPBERRY_PI_IP:443 \
         --connection-active-timeout 60 \
         --connection-inactivity-timeout 60 \
         --header 'User-Agent: h2load-benchmark-measurement' \
         --data '$temp_data_file' \
         --alpn-list=h3,h2 \
-        --insecure \
         --log-file '/logs/$(basename $csv_file)' \
         https://$RASPBERRY_PI_IP/echo" >> $log_file 2>&1
     

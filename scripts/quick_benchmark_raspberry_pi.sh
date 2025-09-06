@@ -10,7 +10,7 @@ echo "ベンチマーク開始: $(date)"
 echo "================================================"
 
 # 設定
-RASPBERRY_PI_IP="172.30.0.2"
+RASPBERRY_PI_IP="192.168.2.100"
 ROUTER_IP="172.30.0.254"
 CLIENT_CONTAINER="grpc-client"
 ROUTER_CONTAINER="grpc-router"
@@ -67,8 +67,6 @@ run_http2_benchmark() {
     
     # ベンチマーク実行
     docker exec $CLIENT_CONTAINER h2load -n $REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connect-to $RASPBERRY_PI_IP:443 \
-        --insecure \
         https://$RASPBERRY_PI_IP/health > $log_file 2>&1
     
     # 結果確認
@@ -97,9 +95,7 @@ run_http3_benchmark() {
     
     # ベンチマーク実行
     docker exec $CLIENT_CONTAINER h2load -n $REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connect-to $RASPBERRY_PI_IP:443 \
         --alpn-list=h3,h2 \
-        --insecure \
         https://$RASPBERRY_PI_IP/health > $log_file 2>&1
     
     # 結果確認
