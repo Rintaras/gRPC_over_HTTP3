@@ -10,7 +10,7 @@ echo "検証開始: $(date)"
 echo "================================================"
 
 # 設定
-RASPBERRY_PI_IP="172.30.0.2"
+RASPBERRY_PI_IP="192.168.2.100"
 ROUTER_IP="172.30.0.254"
 CLIENT_CONTAINER="grpc-client"
 ROUTER_CONTAINER="grpc-router"
@@ -213,8 +213,6 @@ run_benchmark() {
     echo "" >> $h2_log
     
     docker exec $CLIENT_CONTAINER h2load -n $requests -c $connections -t $threads \
-        --connect-to $RASPBERRY_PI_IP:443 \
-        --insecure \
         https://$RASPBERRY_PI_IP/health >> $h2_log 2>&1
     
     if grep -q "succeeded, 0 failed" $h2_log; then
@@ -232,9 +230,7 @@ run_benchmark() {
     echo "" >> $h3_log
     
     docker exec $CLIENT_CONTAINER h2load -n $requests -c $connections -t $threads \
-        --connect-to $RASPBERRY_PI_IP:443 \
         --alpn-list=h3,h2 \
-        --insecure \
         https://$RASPBERRY_PI_IP/health >> $h3_log 2>&1
     
     if grep -q "succeeded, 0 failed" $h3_log; then
