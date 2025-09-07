@@ -142,9 +142,11 @@ log_network_conditions() {
     echo "Raspberry Pi IP: $RASPBERRY_PI_IP" >> $log_file
     echo "Router IP: $ROUTER_IP" >> $log_file
     
-    # Get current qdisc configuration
-    echo "Current qdisc configuration:" >> $log_file
-    docker exec grpc-router tc qdisc show dev eth0 >> $log_file 2>&1
+    # Get current qdisc configuration (client side is authoritative)
+    echo "Current qdisc configuration (grpc-client eth0):" >> $log_file
+    docker exec grpc-client tc qdisc show dev eth0 >> $log_file 2>&1 || echo "(failed to read)" >> $log_file
+    echo "Current qdisc configuration (grpc-router eth0):" >> $log_file
+    docker exec grpc-router tc qdisc show dev eth0 >> $log_file 2>&1 || echo "(failed to read)" >> $log_file
     echo "" >> $log_file
 }
 
@@ -328,9 +330,11 @@ for test_case in "${TEST_CASES[@]}"; do
     echo "Test case: ${delay}ms delay, ${loss}% loss"
     echo "================================================"
     
-    # Apply network conditions
-    echo "Applying network conditions..."
-    docker exec grpc-router /scripts/netem_delay_loss_bandwidth.sh $delay $loss
+    # Apply network conditions ON CLIENT INTERFACE to ensure they affect the real path
+    echo "Applying network conditions on grpc-client eth0..."
+    docker exec grpc-client bash -lc "tc qdisc replace dev eth0 root netem delay ${delay}ms loss ${loss}%" 2>/dev/null || true
+    # Log applied qdisc
+    docker exec grpc-client tc qdisc show dev eth0 | sed 's/^/  [client eth0] /'
     
     # System stabilization for consistent results
     stabilize_system $delay $loss
@@ -383,8 +387,11 @@ done
 
 echo "Benchmark complete! Check the reports and graphs in $LOG_DIR"
 
-# Copy CSV files from Docker container to host
-echo "Copying CSV files from Docker container..."
+# Clear qdisc on client to avoid side-effects after benchmark
+docker exec grpc-client bash -lc "tc qdisc del dev eth0 root" 2>/dev/null || true
+
+# Copy CSV files from Docker container to host (only to the specific benchmark directory)
+echo "Copying CSV files from Docker container to $LOG_DIR..."
 docker cp grpc-client:/logs/h2_0ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h2_0ms_3pct.csv not found"
 docker cp grpc-client:/logs/h2_75ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h2_75ms_3pct.csv not found"
 docker cp grpc-client:/logs/h2_150ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h2_150ms_3pct.csv not found"
@@ -394,7 +401,7 @@ docker cp grpc-client:/logs/h3_75ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3
 docker cp grpc-client:/logs/h3_150ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3_150ms_3pct.csv not found"
 docker cp grpc-client:/logs/h3_225ms_3pct.csv "$LOG_DIR/" 2>/dev/null || echo "h3_225ms_3pct.csv not found"
 
-echo "CSV files copied successfully"
+echo "CSV files copied successfully to $LOG_DIR"
 
 echo "================================================"
 echo "ベンチマーク完了: $(date)"
