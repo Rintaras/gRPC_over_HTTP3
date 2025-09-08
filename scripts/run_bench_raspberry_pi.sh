@@ -173,8 +173,8 @@ run_http2_bench() {
     
     # Phase 1: Establish connections with warmup requests
     docker exec grpc-client bash -c "h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connection-active-timeout 60 \
-        --connection-inactivity-timeout 60 \
+        --connection-active-timeout 120 \
+        --connection-inactivity-timeout 120 \
         --header 'User-Agent: h2load-benchmark-warmup' \
         --data '$temp_data_file' \
         https://$RASPBERRY_PI_IP/echo" >> $log_file 2>&1
@@ -185,8 +185,9 @@ run_http2_bench() {
     echo "=== MEASUREMENT PHASE ===" >> $log_file
     # Phase 2: Measure performance with established connections
     docker exec grpc-client bash -c "h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connection-active-timeout 60 \
-        --connection-inactivity-timeout 60 \
+        --connection-active-timeout 120 \
+        --connection-inactivity-timeout 120 \
+        --warm-up-time 3 \
         --header 'User-Agent: h2load-benchmark-measurement' \
         --data '$temp_data_file' \
         --log-file '/logs/$(basename $csv_file)' \
@@ -233,8 +234,8 @@ run_http3_bench() {
     
     # Phase 1: Establish connections with warmup requests
     docker exec grpc-client bash -c "h2load -n $WARMUP_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connection-active-timeout 60 \
-        --connection-inactivity-timeout 60 \
+        --connection-active-timeout 120 \
+        --connection-inactivity-timeout 120 \
         --header 'User-Agent: h2load-benchmark-warmup' \
         --data '$temp_data_file' \
         --alpn-list=h3,h2 \
@@ -246,8 +247,9 @@ run_http3_bench() {
     echo "=== MEASUREMENT PHASE ===" >> $log_file
     # Phase 2: Measure performance with established connections
     docker exec grpc-client bash -c "h2load -n $MEASUREMENT_REQUESTS -c $CONNECTIONS -t $THREADS -m $MAX_CONCURRENT \
-        --connection-active-timeout 60 \
-        --connection-inactivity-timeout 60 \
+        --connection-active-timeout 120 \
+        --connection-inactivity-timeout 120 \
+        --warm-up-time 3 \
         --header 'User-Agent: h2load-benchmark-measurement' \
         --data '$temp_data_file' \
         --alpn-list=h3,h2 \
@@ -286,23 +288,20 @@ run_http3_bench() {
         echo "HTTP/3 CSV data saved to $csv_file"
         return 0
     else
-        echo "h2load HTTP/3 failed"
+        echo "h2load HTTP/3 failed" >> $log_file
         return 1
     fi
 }
 
 # Function to verify HTTP/3 is working
 verify_http3() {
-    echo "Verifying HTTP/3 connectivity to Raspberry Pi 5..."
-    
-    # Test HTTP/3 with curl
-    local http3_test=$(docker exec grpc-client curl -k --http3 --connect-timeout 10 https://$RASPBERRY_PI_IP/health 2>/dev/null | grep -c "OK")
-    
-    if [ "$http3_test" -gt 0 ]; then
-        echo "✓ HTTP/3 is working correctly on Raspberry Pi 5"
+    echo "Verifying HTTP/3 connectivity to Raspberry Pi 5 with h2load..."
+    # Use h2load to actually negotiate h3; run small probe
+    if docker exec grpc-client bash -lc "h2load -n 10 -c 1 -t 1 --alpn-list=h3 https://$RASPBERRY_PI_IP/health >/dev/null 2>&1"; then
+        echo "✓ HTTP/3 negotiation succeeded (h2load)"
         return 0
     else
-        echo "✗ HTTP/3 is not working on Raspberry Pi 5"
+        echo "✗ HTTP/3 negotiation failed (h2load)"
         return 1
     fi
 }
@@ -339,9 +338,11 @@ for test_case in "${TEST_CASES[@]}"; do
     # System stabilization for consistent results
     stabilize_system $delay $loss
     
-    # Wait for network to stabilize
+    # Wait for network to stabilize (extended)
     echo "Waiting for network to stabilize..."
-    sleep 10
+    sleep 15
+    echo "Additional settle time before HTTP/3 probe..."
+    sleep 5
     
     # Verify HTTP/3 is working before benchmark
     if ! verify_http3; then
@@ -355,8 +356,21 @@ for test_case in "${TEST_CASES[@]}"; do
     echo "Waiting 30 seconds between protocols..."
     sleep 30
     
-    # Run HTTP/3 benchmark with h2load
-    run_http3_bench $delay $loss
+    # Run HTTP/3 benchmark with h2load with retries
+    attempts=0
+    max_attempts=3
+    http3_ok=1
+    while [ $attempts -lt $max_attempts ]; do
+        attempts=$((attempts+1))
+        echo "HTTP/3 benchmark attempt $attempts/$max_attempts"
+        run_http3_bench $delay $loss && { http3_ok=0; break; }
+        echo "Waiting 10s before retry..."
+        sleep 10
+        verify_http3 || true
+    done
+    if [ $http3_ok -ne 0 ]; then
+        echo "HTTP/3 benchmark failed after $max_attempts attempts"
+    fi
     
     echo "Completed test case: ${delay}ms delay, ${loss}% loss"
     echo ""
