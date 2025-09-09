@@ -347,48 +347,48 @@ for test_case in "${TEST_CASES[@]}"; do
 done
 
 echo "================================================"
-echo "All benchmarks completed!"
-echo "Results saved in $LOG_DIR/"
+echo "すべてのベンチマークが完了しました！"
+echo "結果は$LOG_DIR/に保存されました"
 echo "================================================"
-echo "Files:"
+echo "ファイル:"
 ls -la $LOG_DIR/h*_*.log 
 
 # Generate summary report
 echo ""
-echo "=== SUMMARY REPORT ==="
-echo "Generated at: $(get_timestamp)"
-echo "Target Server: $RASPBERRY_PI_IP"
-echo "Total test cases: ${#TEST_CASES[@]}"
-echo "Log directory: $LOG_DIR"
+echo "=== サマリーレポート ==="
+echo "生成時刻: $(get_timestamp)"
+echo "対象サーバー: $RASPBERRY_PI_IP"
+echo "総テストケース数: ${#TEST_CASES[@]}"
+echo "ログディレクトリ: $LOG_DIR"
 echo ""
-echo "File sizes:"
+echo "ファイルサイズ:"
 for log_file in $LOG_DIR/h*_*.log; do
     if [ -f "$log_file" ]; then
         size=$(wc -l < "$log_file")
-        echo "  $(basename $log_file): $size lines"
+        echo "  $(basename $log_file): $size 行"
     fi
 done
 
-echo "Benchmark complete! Check the reports and graphs in $LOG_DIR"
+echo "ベンチマーク完了！$LOG_DIRのレポートとグラフを確認してください"
 
 # Generate performance graphs using simple_graph_generator.py
 echo ""
-echo "=== GENERATING PERFORMANCE GRAPHS ==="
+echo "=== パフォーマンスグラフ生成中 ==="
 if command -v python3 >/dev/null 2>&1; then
     if python3 scripts/simple_graph_generator.py "$LOG_DIR"; then
-        echo "✅ Performance graphs generated successfully"
-        echo "Generated graph files:"
-        ls -la "$LOG_DIR"/*.png 2>/dev/null || echo "No graph files found"
+        echo "✅ パフォーマンスグラフの生成が成功しました"
+        echo "生成されたグラフファイル:"
+        ls -la "$LOG_DIR"/*.png 2>/dev/null || echo "グラフファイルが見つかりません"
     else
-        echo "❌ Failed to generate performance graphs"
-        echo "Manual graph generation required:"
+        echo "❌ パフォーマンスグラフの生成に失敗しました"
+        echo "手動でグラフ生成が必要です:"
         echo "python3 scripts/simple_graph_generator.py $LOG_DIR"
     fi
 else
-    echo "⚠ Python3 not available, skipping graph generation"
+    echo "⚠ Python3が利用できません。グラフ生成をスキップします"
 fi
 
 echo "================================================"
-echo "Raspberry Pi benchmark complete: $(date)"
-echo "Results: $LOG_DIR"
+echo "Raspberry Piベンチマーク完了: $(date)"
+echo "結果: $LOG_DIR"
 echo "================================================"
