@@ -5,7 +5,7 @@
 # Features: Long measurement time, increased connections, extended timeouts, protocol separation
 
 echo "================================================"
-echo "Raspberry Pi HTTP/2 vs HTTP/3 Performance Benchmark"
+echo "Raspberry Pi HTTP/2 vs HTTP/3 パフォーマンスベンチマーク"
 echo "================================================"
 echo "ベンチマーク開始: $(date)"
 echo "================================================"
@@ -46,26 +46,26 @@ REMAINING_REQUESTS=$((REQUESTS % CONNECTIONS))
 CONNECTIONS_PER_THREAD=$((CONNECTIONS / THREADS))
 
 echo "================================================"
-echo "Raspberry Pi HTTP/2 vs HTTP/3 Performance Benchmark"
+echo "Raspberry Pi HTTP/2 vs HTTP/3 パフォーマンスベンチマーク"
 echo "================================================"
-echo "Parameters:"
+echo "パラメータ:"
 echo "  Raspberry Pi IP: $RASPBERRY_PI_IP"
-echo "  Total Requests: $REQUESTS"
-echo "  Connections: $CONNECTIONS"
-echo "  Threads: $THREADS"
-echo "  Max Concurrent Streams: $MAX_CONCURRENT"
-echo "  Requests per Connection: $REQUESTS_PER_CONNECTION"
-echo "  Connections per Thread: $CONNECTIONS_PER_THREAD"
-echo "  Request Data: \"$REQUEST_DATA\""
-echo "  Test Cases: ${#TEST_CASES[@]}"
-echo "  Fair Comparison: Enabled"
-echo "    - Warmup Requests: $WARMUP_REQUESTS"
-echo "    - Measurement Requests: $MEASUREMENT_REQUESTS"
-echo "    - Connection Warmup Time: ${CONNECTION_WARMUP_TIME}s"
-echo "  Long Measurement: Enabled"
-echo "    - Estimated measurement time: ~3-5 minutes per test case"
-echo "    - Protocol separation: 30 seconds between HTTP/2 and HTTP/3"
-echo "    - Extended timeouts: 60 seconds for connections"
+echo "  総リクエスト数: $REQUESTS"
+echo "  接続数: $CONNECTIONS"
+echo "  スレッド数: $THREADS"
+echo "  最大同時ストリーム数: $MAX_CONCURRENT"
+echo "  接続あたりのリクエスト数: $REQUESTS_PER_CONNECTION"
+echo "  スレッドあたりの接続数: $CONNECTIONS_PER_THREAD"
+echo "  リクエストデータ: \"$REQUEST_DATA\""
+echo "  テストケース数: ${#TEST_CASES[@]}"
+echo "  公平比較: 有効"
+echo "    - ウォームアップリクエスト数: $WARMUP_REQUESTS"
+echo "    - 測定リクエスト数: $MEASUREMENT_REQUESTS"
+echo "    - 接続ウォームアップ時間: ${CONNECTION_WARMUP_TIME}秒"
+echo "  長時間測定: 有効"
+echo "    - 推定測定時間: テストケースあたり約3-5分"
+echo "    - プロトコル分離: HTTP/2とHTTP/3の間で30秒"
+echo "    - 拡張タイムアウト: 接続で60秒"
 echo "================================================"
 
 # Create log directory with timestamp
@@ -95,14 +95,14 @@ get_timestamp() {
 
 # Function to verify server connectivity
 verify_server_connectivity() {
-    echo "Verifying Raspberry Pi server connectivity..."
+    echo "Raspberry Piサーバーの接続性を確認中..."
     
     # Test HTTP/2 connectivity
     local http2_test=$(curl -k -s -I https://$RASPBERRY_PI_IP/echo 2>/dev/null | grep -c "HTTP/2")
     if [ "$http2_test" -gt 0 ]; then
-        echo "✓ HTTP/2 connectivity verified"
+        echo "✓ HTTP/2接続性確認済み"
     else
-        echo "✗ HTTP/2 connectivity failed"
+        echo "✗ HTTP/2接続失敗"
         return 1
     fi
     
@@ -110,12 +110,12 @@ verify_server_connectivity() {
     if command -v ./quiche-client/target/release/quiche-client >/dev/null 2>&1; then
         local http3_test=$(./quiche-client/target/release/quiche-client https://$RASPBERRY_PI_IP:4433/ --no-verify 2>/dev/null | grep -c "response\|connection closed\|validation_state=Validated" || echo "0")
         if [ "$http3_test" -gt 0 ]; then
-            echo "✓ HTTP/3 connectivity verified"
+            echo "✓ HTTP/3接続性確認済み"
         else
-            echo "⚠ HTTP/3 connectivity test failed (quiche client)"
+            echo "⚠ HTTP/3接続テスト失敗 (quiche client)"
         fi
     else
-        echo "⚠ quiche client not available for HTTP/3 test"
+        echo "⚠ HTTP/3テスト用のquiche clientが利用できません"
     fi
     
     return 0
@@ -143,7 +143,7 @@ run_http2_bench() {
     local log_file="$LOG_DIR/h2_${delay}ms_${loss}pct.log"
     local csv_file="$LOG_DIR/h2_${delay}ms_${loss}pct.csv"
     
-    echo "Running HTTP/2 benchmark (${delay}ms delay, ${loss}% loss)..."
+    echo "HTTP/2ベンチマーク実行中 (${delay}ms遅延, ${loss}%損失)..."
     
     # Clear log file and add header
     echo "=== HTTP/2 BENCHMARK RESULTS ===" > $log_file
@@ -154,7 +154,7 @@ run_http2_bench() {
     echo "$REQUEST_DATA" > "$temp_data_file"
     
     # Fair comparison: Establish connections first, then measure
-    echo "Establishing HTTP/2 connections for fair comparison..."
+    echo "公平比較のためHTTP/2接続を確立中..."
     echo "=== CONNECTION ESTABLISHMENT PHASE ===" >> $log_file
     
     # Phase 1: Establish connections with warmup requests
@@ -166,7 +166,7 @@ run_http2_bench() {
         --data "$temp_data_file" \
         https://$RASPBERRY_PI_IP/echo >> $log_file 2>&1
     
-    echo "Waiting ${CONNECTION_WARMUP_TIME}s for connections to stabilize..." >> $log_file
+    echo "接続の安定化のため${CONNECTION_WARMUP_TIME}秒待機中..." >> $log_file
     sleep $CONNECTION_WARMUP_TIME
     
     echo "=== MEASUREMENT PHASE ===" >> $log_file
@@ -194,8 +194,8 @@ run_http2_bench() {
     echo "End Time: $(get_timestamp)" >> $log_file
     echo "CSV Log: $csv_file" >> $log_file
     
-    echo "HTTP/2 results saved to $log_file"
-    echo "HTTP/2 CSV data saved to $csv_file"
+    echo "HTTP/2結果を$log_fileに保存しました"
+    echo "HTTP/2 CSVデータを$csv_fileに保存しました"
 }
 
 # Function to run HTTP/3 benchmark with quiche client
@@ -205,7 +205,7 @@ run_http3_bench() {
     local log_file="$LOG_DIR/h3_${delay}ms_${loss}pct.log"
     local csv_file="$LOG_DIR/h3_${delay}ms_${loss}pct.csv"
     
-    echo "Running HTTP/3 benchmark with quiche client (${delay}ms delay, ${loss}% loss)..."
+    echo "quiche clientでHTTP/3ベンチマーク実行中 (${delay}ms遅延, ${loss}%損失)..."
     
     # Clear log file and add header
     echo "=== HTTP/3 BENCHMARK RESULTS ===" > $log_file
@@ -213,15 +213,15 @@ run_http3_bench() {
     
     # Check if quiche client is available
     if ! command -v ./quiche-client/target/release/quiche-client >/dev/null 2>&1; then
-        echo "✗ quiche client not available. Building it first..."
+        echo "✗ quiche clientが利用できません。まずビルドします..."
         echo "Building quiche client..." >> $log_file
         
         cd quiche-client
         if cargo build --release --bin quiche-client; then
-            echo "✓ quiche client built successfully"
+            echo "✓ quiche clientのビルドが成功しました"
             cd ..
         else
-            echo "✗ Failed to build quiche client"
+            echo "✗ quiche clientのビルドに失敗しました"
             cd ..
             return 1
         fi
@@ -232,7 +232,7 @@ run_http3_bench() {
     echo "$REQUEST_DATA" > "$temp_data_file"
     
     echo "=== MEASUREMENT PHASE ===" >> $log_file
-    echo "Running HTTP/3 benchmark with quiche client..." >> $log_file
+    echo "quiche clientでHTTP/3ベンチマーク実行中..." >> $log_file
     
     # Run multiple HTTP/3 requests to simulate benchmark
     local start_time=$(date +%s)
@@ -240,7 +240,7 @@ run_http3_bench() {
     local total_count=100  # Reduced for quiche client testing
     
     for i in $(seq 1 $total_count); do
-        echo "Request $i/$total_count..." >> $log_file
+        echo "リクエスト $i/$total_count..." >> $log_file
         
         # Run quiche client request
         local request_start=$(date +%s%N | cut -b1-13)  # milliseconds
@@ -284,8 +284,8 @@ run_http3_bench() {
     echo "End Time: $(get_timestamp)" >> $log_file
     echo "CSV Log: $csv_file" >> $log_file
     
-    echo "HTTP/3 results saved to $log_file"
-    echo "HTTP/3 CSV data saved to $csv_file"
+    echo "HTTP/3結果を$log_fileに保存しました"
+    echo "HTTP/3 CSVデータを$csv_fileに保存しました"
 }
 
 # Function to stabilize system before benchmark
@@ -293,21 +293,21 @@ stabilize_system() {
     local delay=$1
     local loss=$2
     
-    echo "=== SYSTEM STABILIZATION ==="
-    echo "Timestamp: $(get_timestamp)"
-    echo "Delay: ${delay}ms, Loss: ${loss}% (simulated)"
+    echo "=== システム安定化 ==="
+    echo "タイムスタンプ: $(get_timestamp)"
+    echo "遅延: ${delay}ms, 損失: ${loss}% (シミュレート)"
     
     # Wait for system stabilization
-    echo "Waiting ${SYSTEM_STABILIZATION_TIME}s for system stabilization..."
+    echo "システム安定化のため${SYSTEM_STABILIZATION_TIME}秒待機中..."
     sleep $SYSTEM_STABILIZATION_TIME
     
     # Memory cleanup if enabled
     if [ "$MEMORY_CLEANUP_ENABLED" = true ]; then
-        echo "Performing memory cleanup..."
+        echo "メモリクリーンアップ実行中..."
         sync
     fi
     
-    echo "System stabilization completed"
+    echo "システム安定化完了"
     echo ""
 }
 
@@ -317,32 +317,32 @@ for test_case in "${TEST_CASES[@]}"; do
     
     echo ""
     echo "================================================"
-    echo "Test case: ${delay}ms delay, ${loss}% loss"
+    echo "テストケース: ${delay}ms遅延, ${loss}%損失"
     echo "================================================"
     
     # System stabilization for consistent results
     stabilize_system $delay $loss
     
     # Wait for system to stabilize
-    echo "Waiting for system to stabilize..."
+    echo "システムの安定化を待機中..."
     sleep 10
     
     # Verify server connectivity before benchmark
     if ! verify_server_connectivity; then
-        echo "Warning: Server connectivity verification failed, continuing anyway..."
+        echo "警告: サーバー接続性の確認に失敗しましたが、続行します..."
     fi
     
     # Run benchmarks sequentially to avoid interference
-    echo "Running benchmarks..."
+    echo "ベンチマーク実行中..."
     run_http2_bench $delay $loss
     
-    echo "Waiting 30 seconds between protocols..."
+    echo "プロトコル間で30秒待機中..."
     sleep 30
     
     # Run HTTP/3 benchmark with quiche client
     run_http3_bench $delay $loss
     
-    echo "Completed test case: ${delay}ms delay, ${loss}% loss"
+    echo "テストケース完了: ${delay}ms遅延, ${loss}%損失"
     echo ""
 done
 
