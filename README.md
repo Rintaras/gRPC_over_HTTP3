@@ -8,7 +8,6 @@
 ### コンテナ化・オーケストレーション
 - **Docker Compose**: マルチコンテナ環境の管理（client, router, server）
 - **Docker**: コンテナ化による環境の再現性確保
-- **GitHub Actions**: CI/CDによるDockerイメージの自動ビルド
 
 ### Webサーバー・プロトコル
 - **nginx**: HTTP/2/HTTP/3対応Webサーバー（Alt-SvcヘッダーによるHTTP/3通知）
@@ -42,8 +41,6 @@
 - **CSV**: データ保存形式
 - **PNG**: グラフ出力形式
 
-### CI/CD
-- **GitHub Actions**: CI（Python flake8/Rust build・clippy/Docker build）と CD（GHCR push、任意の SSH デプロイ）
 
 ## 実験環境
 
@@ -129,22 +126,6 @@ docker-compose up -d
 ./scripts/run_bench.sh
 ```
 
-## CI/CD の使い方
-
-### CI
-- `main` ブランチへの push または PR で自動実行
-- flake8、Rust ビルド/Clippy、Docker イメージビルドを検証
-
-### CD（GHCR）
-- `main` へ push で `server/client/router` を GHCR に push
-- タグは `latest` とコミット短縮 SHA
-
-### 任意の SSH デプロイ
-GitHub リポジトリの Secrets に以下を設定すると、`docker compose pull && up -d` を自動実行します。
-
-- `DEPLOY_HOST`: ホスト
-- `DEPLOY_USER`: ユーザー
-- `DEPLOY_KEY`: OpenSSH 秘密鍵（`id_ed25519` 推奨）
 
 ### Raspberry Pi 5環境（ネイティブインストール）
 ```bash
