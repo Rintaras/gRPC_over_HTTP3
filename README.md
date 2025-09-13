@@ -206,11 +206,48 @@ sudo systemctl start nginx
 3. **HTTP/3接続失敗**: TLS証明書のIPアドレス不整合
 4. **Docker接続エラー**: コンテナ間ネットワーク設定
 
+### HTTP/3エラー問題
+
+#### 発生するエラーの種類
+HTTP/3では以下のエラーが高頻度で発生します：
+
+**プロトコルエラー**:
+- `InternalError`: HTTP/3スタック内部エラー
+- `ExcessiveLoad`: 過負荷動作の検出
+- `StreamCreationError`: 受け入れられないストリームの作成
+- `ClosedCriticalStream`: 必須クリティカルストリームの切断
+- `MissingSettings`: SETTINGSフレームの欠落
+- `FrameUnexpected`: 不正なフレーム受信
+- `FrameError`: フレームレイアウト違反
+
+**ネットワーク条件によるエラー**:
+- **高遅延環境**: 225ms遅延で50%以上のリクエスト失敗
+- **パケット損失**: 3%損失でQUICの信頼性メカニズムが過負荷
+- **接続タイムアウト**: 高遅延環境での接続確立失敗
+- **UDP制限**: ファイアウォールやNATでの制限
+
+**h2loadの制限**:
+- HTTP/3サポートの不完全性
+- QUIC実装の制限
+- 高負荷時の接続プール管理問題
+
+#### エラー発生パターン
+```
+requests: 30000 total, 14700 started, 14700 done, 14700 succeeded, 15300 failed, 15300 errored, 0 timeout
+```
+
+**対策**:
+- ネットワーク条件を緩和（遅延・損失率を下げる）
+- リクエスト数を削減して負荷を軽減
+- HTTP/2フォールバックの活用
+- quiche-clientの使用（h2loadより安定）
+
 ### 解決方法
 - CSV区切り文字の統一
 - Python仮想環境の使用
 - 証明書のSubjectAltName設定
 - Docker Compose設定の確認
+- HTTP/3エラー時はHTTP/2フォールバックを活用
 
 ## ドキュメント
 
