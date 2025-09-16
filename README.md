@@ -8,6 +8,7 @@
 ### コンテナ化・オーケストレーション
 - **Docker Compose**: マルチコンテナ環境の管理（client, router, server）
 - **Docker**: コンテナ化による環境の再現性確保
+- **GitHub Actions**: CI/CDによるDockerイメージの自動ビルド
 
 ### Webサーバー・プロトコル
 - **nginx**: HTTP/2/HTTP/3対応Webサーバー（Alt-SvcヘッダーによるHTTP/3通知）
@@ -41,6 +42,8 @@
 - **CSV**: データ保存形式
 - **PNG**: グラフ出力形式
 
+### CI/CD
+- **GitHub Actions**: CI（Python flake8/Rust build・clippy/Docker build）と CD（GHCR push、任意の SSH デプロイ）
 
 ## 実験環境
 
@@ -126,6 +129,22 @@ docker-compose up -d
 ./scripts/run_bench.sh
 ```
 
+## CI/CD の使い方
+
+### CI
+- `main` ブランチへの push または PR で自動実行
+- flake8、Rust ビルド/Clippy、Docker イメージビルドを検証
+
+### CD（GHCR）
+- `main` へ push で `server/client/router` を GHCR に push
+- タグは `latest` とコミット短縮 SHA
+
+### 任意の SSH デプロイ
+GitHub リポジトリの Secrets に以下を設定すると、`docker compose pull && up -d` を自動実行します。
+
+- `DEPLOY_HOST`: ホスト
+- `DEPLOY_USER`: ユーザー
+- `DEPLOY_KEY`: OpenSSH 秘密鍵（`id_ed25519` 推奨）
 
 ### Raspberry Pi 5環境（ネイティブインストール）
 ```bash
@@ -187,48 +206,11 @@ sudo systemctl start nginx
 3. **HTTP/3接続失敗**: TLS証明書のIPアドレス不整合
 4. **Docker接続エラー**: コンテナ間ネットワーク設定
 
-### HTTP/3エラー問題
-
-#### 発生するエラーの種類
-HTTP/3では以下のエラーが高頻度で発生します：
-
-**プロトコルエラー**:
-- `InternalError`: HTTP/3スタック内部エラー
-- `ExcessiveLoad`: 過負荷動作の検出
-- `StreamCreationError`: 受け入れられないストリームの作成
-- `ClosedCriticalStream`: 必須クリティカルストリームの切断
-- `MissingSettings`: SETTINGSフレームの欠落
-- `FrameUnexpected`: 不正なフレーム受信
-- `FrameError`: フレームレイアウト違反
-
-**ネットワーク条件によるエラー**:
-- **高遅延環境**: 225ms遅延で50%以上のリクエスト失敗
-- **パケット損失**: 3%損失でQUICの信頼性メカニズムが過負荷
-- **接続タイムアウト**: 高遅延環境での接続確立失敗
-- **UDP制限**: ファイアウォールやNATでの制限
-
-**h2loadの制限**:
-- HTTP/3サポートの不完全性
-- QUIC実装の制限
-- 高負荷時の接続プール管理問題
-
-#### エラー発生パターン
-```
-requests: 30000 total, 14700 started, 14700 done, 14700 succeeded, 15300 failed, 15300 errored, 0 timeout
-```
-
-**対策**:
-- ネットワーク条件を緩和（遅延・損失率を下げる）
-- リクエスト数を削減して負荷を軽減
-- HTTP/2フォールバックの活用
-- quiche-clientの使用（h2loadより安定）
-
 ### 解決方法
 - CSV区切り文字の統一
 - Python仮想環境の使用
 - 証明書のSubjectAltName設定
 - Docker Compose設定の確認
-- HTTP/3エラー時はHTTP/2フォールバックを活用
 
 ## ドキュメント
 
@@ -250,33 +232,10 @@ requests: 30000 total, 14700 started, 14700 done, 14700 succeeded, 15300 failed,
 
 ## 今後の開発予定
 
-### 仮装環境の大規模見直し（進行中）
-現在、仮装環境（Docker環境）の大幅な見直しを実施しています：
-
-#### 見直しの背景
-- **HTTP/3エラー問題**: 高遅延・高損失環境での接続失敗率が50%以上
-- **h2loadの制限**: HTTP/3サポートの不完全性による測定精度の低下
-- **ネットワークエミュレーション**: tc/netemの設定最適化が必要
-- **ベンチマークツール**: より安定したHTTP/3対応ツールへの移行検討
-
-#### 見直し内容
-- [ ] **ベンチマークツールの刷新**: h2loadからquiche-clientやcurl HTTP/3への移行
-- [ ] **ネットワークエミュレーション最適化**: より現実的なネットワーク条件の設定
-- [ ] **Docker構成の見直し**: コンテナ間通信の最適化とリソース制限の調整
-- [ ] **エラーハンドリング強化**: HTTP/3エラー時の自動フォールバック機能
-- [ ] **測定精度向上**: 統計的有意性を確保するためのサンプル数調整
-- [ ] **ログ分析機能強化**: エラー原因の詳細分析と可視化
-
-#### 影響範囲
-- 既存のベンチマークスクリプトの大幅改修
-- 新しいベンチマークツールの統合
-- Docker Compose設定の更新
-- 分析スクリプトの対応
-
 ### 短期目標
-- [ ] 仮装環境見直しの完了
-- [ ] 新しいベンチマークツールでの検証
-- [ ] エラー率の大幅削減（目標: 10%以下）
+- [ ] より多くのネットワーク条件でのテスト
+- [ ] 統計的有意性検定の実装
+- [ ] リアルタイムモニタリングの追加
 - [ ] Raspberry Pi 5実機環境での性能比較
 
 ### 長期目標
