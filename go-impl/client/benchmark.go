@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
 	"grpc-over-http3/common"
@@ -45,9 +46,29 @@ type BenchmarkResult struct {
 	TestCase       TestCase
 }
 
+// 進行状況を表示するヘルパー関数
+func logProgress(logger *common.Logger, completed, total int, startTime time.Time) {
+	if completed%100 == 0 || completed == total {
+		elapsed := time.Since(startTime)
+		progress := float64(completed) / float64(total) * 100
+		rate := float64(completed) / elapsed.Seconds()
+		eta := time.Duration(float64(total-completed)/rate) * time.Second
+		
+		logger.Info("Progress", 
+			"completed", completed, 
+			"total", total, 
+			"progress", fmt.Sprintf("%.1f%%", progress),
+			"rate", fmt.Sprintf("%.1f req/s", rate),
+			"elapsed", elapsed.Round(time.Second),
+			"eta", eta.Round(time.Second))
+	}
+}
+
 func runHTTP2Benchmark(config BenchmarkConfig) BenchmarkResult {
 	logger := common.NewLogger("INFO")
+	logger.Info("================================================")
 	logger.Info("Starting HTTP/2 benchmark", "requests", config.Requests, "connections", config.Connections)
+	logger.Info("================================================")
 
 	start := time.Now()
 	var wg sync.WaitGroup
@@ -61,8 +82,10 @@ func runHTTP2Benchmark(config BenchmarkConfig) BenchmarkResult {
 		go func(connID int) {
 			defer wg.Done()
 
-			// gRPC接続
-			conn, err := grpc.Dial(fmt.Sprintf("%s:%d", config.ServerAddr, 443), grpc.WithInsecure())
+			// gRPC接続（証明書検証を無効化）
+			conn, err := grpc.Dial(fmt.Sprintf("%s:%d", config.ServerAddr, 443),
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock())
 			if err != nil {
 				logger.Error("Failed to connect", "connection", connID, "error", err)
 				for j := 0; j < requestsPerConnection; j++ {
@@ -109,7 +132,9 @@ func runHTTP2Benchmark(config BenchmarkConfig) BenchmarkResult {
 
 func runHTTP3Benchmark(config BenchmarkConfig) BenchmarkResult {
 	logger := common.NewLogger("INFO")
+	logger.Info("================================================")
 	logger.Info("Starting HTTP/3 benchmark", "requests", config.Requests, "connections", config.Connections)
+	logger.Info("================================================")
 
 	start := time.Now()
 	var wg sync.WaitGroup
@@ -123,8 +148,10 @@ func runHTTP3Benchmark(config BenchmarkConfig) BenchmarkResult {
 		go func(connID int) {
 			defer wg.Done()
 
-			// gRPC接続（HTTP/3ポート）
-			conn, err := grpc.Dial(fmt.Sprintf("%s:%d", config.ServerAddr, 4433), grpc.WithInsecure())
+			// gRPC接続（HTTP/3ポート、証明書検証を無効化）
+			conn, err := grpc.Dial(fmt.Sprintf("%s:%d", config.ServerAddr, 4433),
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock())
 			if err != nil {
 				logger.Error("Failed to connect", "connection", connID, "error", err)
 				for j := 0; j < requestsPerConnection; j++ {
@@ -176,17 +203,30 @@ type RequestResult struct {
 }
 
 func analyzeResults(results <-chan RequestResult, totalTime time.Duration, protocol string, testCase TestCase) BenchmarkResult {
+	logger := common.NewLogger("INFO")
 	var latencies []time.Duration
 	var successfulReqs, failedReqs int
+	var completed int
 
+	logger.Info("Collecting benchmark results...")
 	for result := range results {
+		completed++
+		if completed%100 == 0 || completed%1000 == 0 {
+			logger.Info("Processing results", "completed", completed, "successful", successfulReqs, "failed", failedReqs)
+		}
+		
 		if result.Success {
 			successfulReqs++
 			latencies = append(latencies, result.Latency)
 		} else {
 			failedReqs++
+			if failedReqs <= 5 { // 最初の5個のエラーのみログ出力
+				logger.Error("Request failed", "error", result.Error)
+			}
 		}
 	}
+	
+	logger.Info("Result collection completed", "total", completed, "successful", successfulReqs, "failed", failedReqs)
 
 	totalRequests := successfulReqs + failedReqs
 	if totalRequests == 0 {

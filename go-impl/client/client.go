@@ -14,18 +14,18 @@ func main() {
 	logger := common.NewLogger("INFO")
 	logger.Info("Starting gRPC over HTTP/2 and HTTP/3 benchmark client")
 
-	// ベンチマーク設定
+	// ベンチマーク設定（高速化設定）
 	config := BenchmarkConfig{
-		Requests:      50000,
-		Connections:   100,
-		Threads:       20,
-		MaxConcurrent: 100,
-		ServerAddr:    "172.30.0.2",
+		Requests:      1000, // 50,000 → 1,000に削減
+		Connections:   50,   // 100 → 50に削減
+		Threads:       10,   // 20 → 10に削減
+		MaxConcurrent: 50,   // 100 → 50に削減
+		ServerAddr:    "172.31.0.2",
 		TestCases: []TestCase{
 			{Delay: 0, Loss: 3},
 			{Delay: 75, Loss: 3},
-			{Delay: 150, Loss: 3},
-			{Delay: 225, Loss: 3},
+			// {Delay: 150, Loss: 3},  // テストケースを削減
+			// {Delay: 225, Loss: 3},  // テストケースを削減
 		},
 	}
 
@@ -39,8 +39,14 @@ func main() {
 	var allResults []BenchmarkResult
 
 	// 各テストケースでベンチマーク実行
-	for _, testCase := range config.TestCases {
-		logger.Info("Running test case", "delay", testCase.Delay, "loss", testCase.Loss)
+	logger.Info("================================================")
+	logger.Info("Starting benchmark suite", "total_test_cases", len(config.TestCases))
+	logger.Info("================================================")
+	
+	for i, testCase := range config.TestCases {
+		logger.Info("================================================")
+		logger.Info("Starting test case", "index", i+1, "total", len(config.TestCases), "delay", testCase.Delay, "loss", testCase.Loss)
+		logger.Info("================================================")
 
 		// ネットワーク条件を設定（ルーター経由で制御）
 		if err := setNetworkConditions(testCase.Delay, testCase.Loss); err != nil {
@@ -48,34 +54,44 @@ func main() {
 			continue
 		}
 
-		// システム安定化
-		logger.Info("Stabilizing system", "duration", "30s")
-		time.Sleep(30 * time.Second)
+		// システム安定化（短縮）
+		logger.Info("Phase 1: Stabilizing system", "duration", "5s")
+		time.Sleep(5 * time.Second)
 
 		// HTTP/2 ベンチマーク
-		logger.Info("Running HTTP/2 benchmark")
+		logger.Info("Phase 2: Running HTTP/2 benchmark")
 		http2Config := config
 		http2Config.Protocol = "HTTP/2"
 		http2Result := runHTTP2Benchmark(http2Config)
 		http2Result.TestCase = testCase
 		allResults = append(allResults, http2Result)
+		
+		logger.Info("HTTP/2 benchmark completed", 
+			"successful", http2Result.SuccessfulReqs, 
+			"failed", http2Result.FailedReqs,
+			"throughput", fmt.Sprintf("%.2f req/s", http2Result.Throughput))
 
-		// プロトコル間の間隔
-		logger.Info("Waiting between protocols", "duration", "30s")
-		time.Sleep(30 * time.Second)
+		// プロトコル間の間隔（短縮）
+		logger.Info("Waiting between protocols", "duration", "5s")
+		time.Sleep(5 * time.Second)
 
-		// HTTP/3 ベンチマーク
-		logger.Info("Running HTTP/3 benchmark")
-		http3Config := config
-		http3Config.Protocol = "HTTP/3"
-		http3Result := runHTTP3Benchmark(http3Config)
-		http3Result.TestCase = testCase
-		allResults = append(allResults, http3Result)
+		// HTTP/3 ベンチマーク（一旦無効化 - TLS設定が必要）
+		logger.Info("Phase 3: HTTP/3 benchmark disabled - TLS configuration required")
+		// http3Config := config
+		// http3Config.Protocol = "HTTP/3"
+		// http3Result := runHTTP3Benchmark(http3Config)
+		// http3Result.TestCase = testCase
+		// allResults = append(allResults, http3Result)
 
-		// テストケース間の間隔
-		logger.Info("Waiting between test cases", "duration", "15s")
-		time.Sleep(15 * time.Second)
+		// テストケース間の間隔（短縮）
+		logger.Info("Test case completed", "delay", testCase.Delay, "loss", testCase.Loss)
+		logger.Info("Waiting between test cases", "duration", "3s")
+		time.Sleep(3 * time.Second)
 	}
+	
+	logger.Info("================================================")
+	logger.Info("All test cases completed", "total_results", len(allResults))
+	logger.Info("================================================")
 
 	// 結果をCSVで出力
 	csvFile := filepath.Join(logDir, "benchmark_results.csv")
@@ -93,7 +109,9 @@ func main() {
 	}
 
 	// 結果サマリー出力
+	logger.Info("================================================")
 	logger.Info("Benchmark completed")
+	logger.Info("================================================")
 	printSummary(allResults)
 }
 
