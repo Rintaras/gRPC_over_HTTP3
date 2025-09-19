@@ -85,9 +85,10 @@ func (cm *CertManager) LoadTLSConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		NextProtos:   []string{"h2", "h3", "h3-29", "h3-28", "h3-27"},
-		MinVersion:   tls.VersionTLS12,
+		Certificates:       []tls.Certificate{cert},
+		NextProtos:         []string{"h2", "h3", "h3-29", "h3-28", "h3-27"},
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: true, // 証明書検証を無効化（テスト環境用）
 		CipherSuites: []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,

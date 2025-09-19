@@ -16,13 +16,16 @@ RUN go mod download
 COPY . .
 
 # Install protoc-gen-go and protoc-gen-go-grpc
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.31.0
+RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
 
 # Generate protobuf files
 RUN protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     proto/echo.proto
+
+# Update go.mod and generate go.sum
+RUN go mod tidy
 
 # Build server
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./server/
