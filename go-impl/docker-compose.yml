@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  go-server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: go-grpc-server
+    ports:
+      - "80:443" # HTTP/2 HTTPS
+      - "443:443" # HTTP/2 HTTPS
+      - "4433:4433" # HTTP/3
+      - "8080:8080" # Health check
+    networks:
+      benchnet:
+        ipv4_address: 172.30.0.2
+    environment:
+      - SERVER_PORT=443
+      - HTTP3_PORT=4433
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./certs:/app/certs
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  go-client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: go-grpc-client
+    networks:
+      benchnet:
+        ipv4_address: 172.30.0.3
+    volumes:
+      - ./logs:/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - LOG_LEVEL=INFO
+    depends_on:
+      - go-router
+      - go-server
+    tty: true
+    stdin_open: true
+
+  go-router:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: go-grpc-router
+    networks:
+      benchnet:
+        ipv4_address: 172.30.0.254
+    ports:
+      - "8081:8080" # Router API
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+    environment:
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  benchnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
