@@ -20,13 +20,15 @@ type RouterServer struct {
 }
 
 type NetworkConfigRequest struct {
-	Delay int `json:"delay"`
-	Loss  int `json:"loss"`
+	Delay     int `json:"delay"`
+	Loss      int `json:"loss"`
+	Bandwidth int `json:"bandwidth"`
 }
 
 type NetworkStatusResponse struct {
-	Delay int `json:"delay"`
-	Loss  int `json:"loss"`
+	Delay     int `json:"delay"`
+	Loss      int `json:"loss"`
+	Bandwidth int `json:"bandwidth"`
 }
 
 func (rs *RouterServer) handleSetNetworkConfig(w http.ResponseWriter, r *http.Request) {
@@ -41,9 +43,16 @@ func (rs *RouterServer) handleSetNetworkConfig(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	rs.logger.Info("Setting network configuration", "delay", config.Delay, "loss", config.Loss)
+	rs.logger.Info("Setting network configuration", "delay", config.Delay, "loss", config.Loss, "bandwidth", config.Bandwidth)
 
-	if err := rs.emulation.SetConditions(config.Delay, config.Loss); err != nil {
+	var err error
+	if config.Bandwidth > 0 {
+		err = rs.emulation.SetAllConditions(config.Delay, config.Loss, config.Bandwidth)
+	} else {
+		err = rs.emulation.SetConditions(config.Delay, config.Loss)
+	}
+
+	if err != nil {
 		rs.logger.Error("Failed to set network conditions", "error", err)
 		http.Error(w, fmt.Sprintf("Failed to set network conditions: %v", err), http.StatusInternalServerError)
 		return
@@ -59,7 +68,7 @@ func (rs *RouterServer) handleGetNetworkStatus(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	delay, loss, err := rs.emulation.GetStatus()
+	delay, loss, bandwidth, err := rs.emulation.GetStatus()
 	if err != nil {
 		rs.logger.Error("Failed to get network status", "error", err)
 		http.Error(w, fmt.Sprintf("Failed to get network status: %v", err), http.StatusInternalServerError)
@@ -67,8 +76,9 @@ func (rs *RouterServer) handleGetNetworkStatus(w http.ResponseWriter, r *http.Re
 	}
 
 	status := NetworkStatusResponse{
-		Delay: delay,
-		Loss:  loss,
+		Delay:     delay,
+		Loss:      loss,
+		Bandwidth: bandwidth,
 	}
 
 	json.NewEncoder(w).Encode(status)
@@ -103,8 +113,9 @@ func main() {
 
 	// ネットワークエミュレーション初期化
 	emulation := &NetworkEmulation{
-		Delay: 0,
-		Loss:  0,
+		Delay:     0,
+		Loss:      0,
+		Bandwidth: 0,
 	}
 
 	// 初期状態をクリア

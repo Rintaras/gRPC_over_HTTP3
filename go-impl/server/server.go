@@ -9,11 +9,8 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 
 	"grpc-over-http3/common"
-	pb "grpc-over-http3/proto"
 )
 
 func main() {
@@ -53,15 +50,24 @@ func main() {
 	healthChecker := &HealthChecker{}
 	healthChecker.StartHealthCheck()
 
-	// gRPCサーバー作成（プレーンテキスト）
-	grpcServer := grpc.NewServer()
-	pb.RegisterEchoServiceServer(grpcServer, &EchoServer{})
-	reflection.Register(grpcServer)
+	// HTTP/2 サーバー（基本的なWebサーバー）
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"OK","protocol":"HTTP/2"}`))
+	})
+	mux.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		response := fmt.Sprintf(`{"message":"Echo response","protocol":"%s","timestamp":%d}`,
+			r.Proto, time.Now().UnixNano())
+		w.Write([]byte(response))
+	})
 
-	// HTTP/2 サーバー（TLS無効）
 	http2Server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.ServerPort),
-		Handler: grpcServer,
+		Handler: mux,
 	}
 
 	// HTTP/2設定

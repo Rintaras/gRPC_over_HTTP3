@@ -29,9 +29,10 @@ RUN go mod tidy
 
 # Build client
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o client ./client/
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o test_http_client ./test_http_client.go
 
 # Final stage
-FROM ubuntu:22.04
+FROM ubuntu:18.04
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \
@@ -45,6 +46,7 @@ RUN mkdir -p /app/logs
 
 # Copy binary
 COPY --from=builder /app/client .
+COPY --from=builder /app/test_http_client .
 
 # Keep container running
 CMD ["sleep", "infinity"]

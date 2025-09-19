@@ -31,7 +31,7 @@ RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./server/
 
 # Final stage
-FROM ubuntu:22.04
+FROM ubuntu:18.04
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \

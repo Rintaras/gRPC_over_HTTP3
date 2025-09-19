@@ -14,12 +14,13 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o router ./router/
 
 # Final stage
-FROM ubuntu:22.04
+FROM ubuntu:18.04
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     iproute2 \
     curl \
+    ethtool \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
