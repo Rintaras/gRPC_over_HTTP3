@@ -379,6 +379,228 @@ func printLatencyResults(results []LatencyResult) {
 	fmt.Println("\n" + strings.Repeat("=", 80))
 }
 
+func saveResultsToFiles(results []LatencyResult, logDir string, logger *common.Logger) error {
+	logger.Info("Saving results to files", "directory", logDir)
+
+	// 1. JSON形式で結果を保存
+	jsonFile := filepath.Join(logDir, "latency_results.json")
+	if err := saveResultsAsJSON(results, jsonFile); err != nil {
+		return fmt.Errorf("failed to save JSON results: %v", err)
+	}
+	logger.Info("JSON results saved", "file", jsonFile)
+
+	// 2. CSV形式で結果を保存
+	csvFile := filepath.Join(logDir, "latency_results.csv")
+	if err := saveResultsAsCSV(results, csvFile); err != nil {
+		return fmt.Errorf("failed to save CSV results: %v", err)
+	}
+	logger.Info("CSV results saved", "file", csvFile)
+
+	// 3. テキストレポートを保存
+	reportFile := filepath.Join(logDir, "latency_report.txt")
+	if err := saveResultsAsReport(results, reportFile); err != nil {
+		return fmt.Errorf("failed to save text report: %v", err)
+	}
+	logger.Info("Text report saved", "file", reportFile)
+
+	// 4. グラフを生成して保存
+	graphFile := filepath.Join(logDir, "latency_comparison.png")
+	if err := generateLatencyGraph(results, graphFile); err != nil {
+		return fmt.Errorf("failed to generate graph: %v", err)
+	}
+	logger.Info("Graph saved", "file", graphFile)
+
+	return nil
+}
+
+func saveResultsAsJSON(results []LatencyResult, filename string) error {
+	data, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filename, data, 0644)
+}
+
+func saveResultsAsCSV(results []LatencyResult, filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// ヘッダー
+	header := []string{
+		"Protocol", "Delay(ms)", "Requests", "Success", "Failures",
+		"Min(ms)", "Max(ms)", "Avg(ms)", "Median(ms)", "P95(ms)", "P99(ms)",
+	}
+	if err := writer.Write(header); err != nil {
+		return err
+	}
+
+	// データ
+	for _, result := range results {
+		record := []string{
+			result.Protocol,
+			strconv.Itoa(result.Delay),
+			strconv.Itoa(result.Requests),
+			strconv.Itoa(result.Successes),
+			strconv.Itoa(result.Failures),
+			fmt.Sprintf("%.2f", float64(result.MinLatency.Nanoseconds())/1e6),
+			fmt.Sprintf("%.2f", float64(result.MaxLatency.Nanoseconds())/1e6),
+			fmt.Sprintf("%.2f", float64(result.AvgLatency.Nanoseconds())/1e6),
+			fmt.Sprintf("%.2f", float64(result.MedianLatency.Nanoseconds())/1e6),
+			fmt.Sprintf("%.2f", float64(result.P95Latency.Nanoseconds())/1e6),
+			fmt.Sprintf("%.2f", float64(result.P99Latency.Nanoseconds())/1e6),
+		}
+		if err := writer.Write(record); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func saveResultsAsReport(results []LatencyResult, filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// レポートヘッダー
+	fmt.Fprintf(file, "HTTP/2 and HTTP/3 Latency Benchmark Report\n")
+	fmt.Fprintf(file, "Generated at: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+	fmt.Fprintf(file, "%s\n", strings.Repeat("=", 80))
+
+	// 結果テーブル
+	fmt.Fprintf(file, "\nResults Summary:\n")
+	fmt.Fprintf(file, "%s\n", strings.Repeat("-", 80))
+	fmt.Fprintf(file, "%-10s %-8s %-10s %-10s %-10s %-10s %-10s %-10s %-10s\n",
+		"Protocol", "Delay(ms)", "Requests", "Success", "Min(ms)", "Max(ms)", "Avg(ms)", "P95(ms)", "P99(ms)")
+
+	for _, result := range results {
+		fmt.Fprintf(file, "%-10s %-8d %-10d %-10d %-10.2f %-10.2f %-10.2f %-10.2f %-10.2f\n",
+			result.Protocol,
+			result.Delay,
+			result.Requests,
+			result.Successes,
+			float64(result.MinLatency.Nanoseconds())/1e6,
+			float64(result.MaxLatency.Nanoseconds())/1e6,
+			float64(result.AvgLatency.Nanoseconds())/1e6,
+			float64(result.P95Latency.Nanoseconds())/1e6,
+			float64(result.P99Latency.Nanoseconds())/1e6)
+	}
+
+	// 詳細分析
+	fmt.Fprintf(file, "\n%s\n", strings.Repeat("=", 80))
+	fmt.Fprintf(file, "Detailed Analysis\n")
+	fmt.Fprintf(file, "%s\n", strings.Repeat("=", 80))
+
+	// HTTP/2 vs HTTP/3 比較
+	http2Results := make(map[int]LatencyResult)
+	http3Results := make(map[int]LatencyResult)
+
+	for _, result := range results {
+		if result.Protocol == "HTTP/2" {
+			http2Results[result.Delay] = result
+		} else if result.Protocol == "HTTP/3" {
+			http3Results[result.Delay] = result
+		}
+	}
+
+	for _, delay := range []int{0, 100, 200} {
+		http2Result, http2Exists := http2Results[delay]
+		http3Result, http3Exists := http3Results[delay]
+
+		if http2Exists && http3Exists {
+			fmt.Fprintf(file, "\nDelay %dms Comparison:\n", delay)
+			fmt.Fprintf(file, "  HTTP/2 Avg: %.2f ms\n", float64(http2Result.AvgLatency.Nanoseconds())/1e6)
+			fmt.Fprintf(file, "  HTTP/3 Avg: %.2f ms\n", float64(http3Result.AvgLatency.Nanoseconds())/1e6)
+
+			diff := float64(http3Result.AvgLatency.Nanoseconds()-http2Result.AvgLatency.Nanoseconds()) / 1e6
+			if diff > 0 {
+				fmt.Fprintf(file, "  HTTP/3 is %.2f ms slower than HTTP/2\n", diff)
+			} else {
+				fmt.Fprintf(file, "  HTTP/3 is %.2f ms faster than HTTP/2\n", -diff)
+			}
+		}
+	}
+
+	return nil
+}
+
+func generateLatencyGraph(results []LatencyResult, filename string) error {
+	p, err := plot.New()
+	if err != nil {
+		return err
+	}
+
+	p.Title.Text = "HTTP/2 vs HTTP/3 Latency Comparison"
+	p.X.Label.Text = "Network Delay (ms)"
+	p.Y.Label.Text = "Average Latency (ms)"
+
+	// データを整理
+	http2Data := make(plotter.XYs, 0)
+	http3Data := make(plotter.XYs, 0)
+
+	for _, result := range results {
+		if result.Protocol == "HTTP/2" {
+			http2Data = append(http2Data, plotter.XY{
+				X: float64(result.Delay),
+				Y: float64(result.AvgLatency.Nanoseconds()) / 1e6,
+			})
+		} else if result.Protocol == "HTTP/3" {
+			http3Data = append(http3Data, plotter.XY{
+				X: float64(result.Delay),
+				Y: float64(result.AvgLatency.Nanoseconds()) / 1e6,
+			})
+		}
+	}
+
+	// プロット作成
+	http2Line, err := plotter.NewLine(http2Data)
+	if err != nil {
+		return err
+	}
+	http2Line.Color = plotutil.Color(0)
+	http2Line.Width = vg.Points(2)
+
+	http3Line, err := plotter.NewLine(http3Data)
+	if err != nil {
+		return err
+	}
+	http3Line.Color = plotutil.Color(1)
+	http3Line.Width = vg.Points(2)
+
+	// ポイント追加
+	http2Points, err := plotter.NewScatter(http2Data)
+	if err != nil {
+		return err
+	}
+	http2Points.Color = plotutil.Color(0)
+	http2Points.Shape = plotutil.Shape(0)
+
+	http3Points, err := plotter.NewScatter(http3Data)
+	if err != nil {
+		return err
+	}
+	http3Points.Color = plotutil.Color(1)
+	http3Points.Shape = plotutil.Shape(1)
+
+	p.Add(http2Line, http2Points, http3Line, http3Points)
+	p.Legend.Add("HTTP/2", http2Line, http2Points)
+	p.Legend.Add("HTTP/3", http3Line, http3Points)
+
+	// グリッド追加
+	p.Add(plotter.NewGrid())
+
+	// ファイル保存
+	return p.Save(8*vg.Inch, 6*vg.Inch, filename)
+}
+
 func setNetworkConditions(delay, loss int) error {
 	config := map[string]interface{}{
 		"delay":     delay,
