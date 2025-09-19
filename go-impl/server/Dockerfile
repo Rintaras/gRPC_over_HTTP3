@@ -9,11 +9,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download
 
 # Copy source code
 COPY . .
+
+# Install protoc-gen-go and protoc-gen-go-grpc
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # Generate protobuf files
 RUN protoc --go_out=. --go_opt=paths=source_relative \

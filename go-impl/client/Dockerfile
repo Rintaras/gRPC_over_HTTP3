@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download
 
 # Copy source code
