@@ -27,9 +27,9 @@ RUN protoc --go_out=. --go_opt=paths=source_relative \
 # Update go.mod and generate go.sum
 RUN go mod tidy
 
-# Build client
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o client ./client/
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o test_http_client ./test_http_client.go
+# Build client (use Go modules explicitly)
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOPATH= go build -a -installsuffix cgo -o client ./client/
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOPATH= go build -a -installsuffix cgo -o test_http_client ./test_http_client.go
 
 # Final stage
 FROM ubuntu:18.04

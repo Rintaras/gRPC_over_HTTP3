@@ -27,8 +27,8 @@ RUN protoc --go_out=. --go_opt=paths=source_relative \
 # Update go.mod and generate go.sum
 RUN go mod tidy
 
-# Build server
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./server/
+# Build server (use Go modules explicitly)
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOPATH= go build -a -installsuffix cgo -o server ./server/
 
 # Final stage
 FROM ubuntu:18.04

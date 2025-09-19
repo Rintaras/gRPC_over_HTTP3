@@ -10,8 +10,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build router
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o router ./router/
+# Build router (use Go modules explicitly)
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOPATH= go build -a -installsuffix cgo -o router ./router/
 
 # Final stage
 FROM ubuntu:18.04
