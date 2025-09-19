@@ -35,6 +35,7 @@ FROM ubuntu:18.04
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \
+    ethtool \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -42,8 +43,12 @@ WORKDIR /app
 # Create certificates directory
 RUN mkdir -p /app/certs
 
-# Copy binary
+# Copy binary and scripts
 COPY --from=builder /app/server .
+COPY --from=builder /app/server/disable_offloads.sh .
+
+# Make scripts executable
+RUN chmod +x disable_offloads.sh
 
 # Expose ports
 EXPOSE 443 4433 8080

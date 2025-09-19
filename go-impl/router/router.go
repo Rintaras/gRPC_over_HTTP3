@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -89,6 +90,21 @@ func (rs *RouterServer) handleHealthCheck(w http.ResponseWriter, r *http.Request
 	w.Write([]byte("OK"))
 }
 
+// disableNetworkOffloads ネットワークオフロード機能を無効化
+func disableNetworkOffloads(logger *common.Logger) error {
+	logger.Info("Disabling network offload features for accurate packet loss emulation")
+
+	cmd := exec.Command("./disable_offloads.sh")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Error("Failed to disable network offloads", "error", err, "output", string(output))
+		return fmt.Errorf("failed to disable network offloads: %v", err)
+	}
+
+	logger.Info("Network offload features disabled successfully", "output", string(output))
+	return nil
+}
+
 func (rs *RouterServer) handleClearNetworkConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -116,6 +132,12 @@ func main() {
 		Delay:     0,
 		Loss:      0,
 		Bandwidth: 0,
+	}
+
+	// ネットワークオフロード機能を無効化（tc netemの正確な動作のため）
+	if err := disableNetworkOffloads(logger); err != nil {
+		logger.Error("Failed to disable network offloads", "error", err)
+		// オフロード無効化に失敗しても続行
 	}
 
 	// 初期状態をクリア

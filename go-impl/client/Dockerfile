@@ -37,6 +37,7 @@ FROM ubuntu:18.04
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
+    ethtool \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -44,9 +45,13 @@ WORKDIR /app
 # Create logs directory
 RUN mkdir -p /app/logs
 
-# Copy binary
+# Copy binary and scripts
 COPY --from=builder /app/client .
 COPY --from=builder /app/test_http_client .
+COPY --from=builder /app/client/disable_offloads.sh .
+
+# Make scripts executable
+RUN chmod +x disable_offloads.sh
 
 # Keep container running
 CMD ["sleep", "infinity"]

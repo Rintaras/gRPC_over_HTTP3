@@ -25,8 +25,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy binary
+# Copy binary and scripts
 COPY --from=builder /app/router .
+COPY --from=builder /app/router/disable_offloads.sh .
+
+# Make scripts executable
+RUN chmod +x disable_offloads.sh
 
 # Expose port
 EXPOSE 8080

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/quic-go/quic-go/http3"
 	"golang.org/x/net/http2"
 
 	"grpc-over-http3/common"
@@ -40,22 +41,27 @@ func main() {
 		}
 	}
 
-	// TLS設定読み込み（現在は使用しない）
-	// tlsConfig, err := certManager.LoadTLSConfig()
-	// if err != nil {
-	// 	log.Printf("Warning: Failed to load TLS config: %v", err)
-	// }
-
 	// ヘルスチェック起動
 	healthChecker := &HealthChecker{}
 	healthChecker.StartHealthCheck()
+
+	// TLS設定読み込み
+	tlsConfig, err := certManager.LoadTLSConfig()
+	if err != nil {
+		logger.Error("Failed to load TLS config", "error", err)
+		log.Fatalf("Failed to load TLS config: %v", err)
+	}
 
 	// HTTP/2 サーバー（基本的なWebサーバー）
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"OK","protocol":"HTTP/2"}`))
+		protocol := "HTTP/2"
+		if r.Proto == "HTTP/3.0" || r.Proto == "HTTP/3" {
+			protocol = "HTTP/3"
+		}
+		w.Write([]byte(fmt.Sprintf(`{"status":"OK","protocol":"%s"}`, protocol)))
 	})
 	mux.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -75,12 +81,12 @@ func main() {
 		log.Fatalf("Failed to configure HTTP/2 server: %v", err)
 	}
 
-	// HTTP/3 サーバー（一旦無効化 - TLS必須のため）
-	// http3Server := &http3.Server{
-	// 	Addr:      fmt.Sprintf(":%d", config.HTTP3Port),
-	// 	Handler:   grpcServer,
-	// 	TLSConfig: tlsConfig,
-	// }
+	// HTTP/3 サーバー（QUIC）
+	http3Server := &http3.Server{
+		Addr:      fmt.Sprintf(":%d", config.HTTP3Port),
+		Handler:   mux,
+		TLSConfig: tlsConfig,
+	}
 
 	// サーバー起動
 	go func() {
@@ -90,13 +96,13 @@ func main() {
 		}
 	}()
 
-	// HTTP/3 サーバー起動（一旦無効化）
-	// go func() {
-	// 	logger.Info("Starting HTTP/3 server", "port", config.HTTP3Port)
-	// 	if err := http3Server.ListenAndServe(); err != nil {
-	// 		log.Fatalf("HTTP/3 server failed: %v", err)
-	// 	}
-	// }()
+	// HTTP/3 サーバー起動
+	go func() {
+		logger.Info("Starting HTTP/3 server", "port", config.HTTP3Port)
+		if err := http3Server.ListenAndServe(); err != nil {
+			log.Fatalf("HTTP/3 server failed: %v", err)
+		}
+	}()
 
 	// 準備完了
 	healthChecker.SetReady(true)
@@ -105,7 +111,7 @@ func main() {
 	// グレースフルシャットダウン
 	shutdown := &GracefulShutdown{
 		Server:      http2Server,
-		HTTP3Server: nil, // HTTP/3は無効化
+		HTTP3Server: http3Server,
 		Timeout:     30 * time.Second,
 	}
 	shutdown.WaitForShutdown()
