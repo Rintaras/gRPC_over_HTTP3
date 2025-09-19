@@ -30,6 +30,7 @@ RUN go mod tidy
 # Build client (use Go modules explicitly)
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOPATH= go build -a -installsuffix cgo -o client ./client/
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOPATH= go build -a -installsuffix cgo -o test_http_client ./test_http_client.go
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOPATH= go build -a -installsuffix cgo -o latency_benchmark ./latency_benchmark.go
 
 # Final stage
 FROM ubuntu:18.04
@@ -48,6 +49,7 @@ RUN mkdir -p /app/logs
 # Copy binary and scripts
 COPY --from=builder /app/client .
 COPY --from=builder /app/test_http_client .
+COPY --from=builder /app/latency_benchmark .
 COPY --from=builder /app/client/disable_offloads.sh .
 
 # Make scripts executable

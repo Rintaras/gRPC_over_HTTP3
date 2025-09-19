@@ -19,22 +19,31 @@ func (ne *NetworkEmulation) Apply() error {
 		log.Printf("Warning: Failed to clear existing rules: %v", err)
 	}
 
-	// tc netem ルールを適用
-	var cmd *exec.Cmd
+	// パラメータを構築
+	var args []string
+	args = append(args, "tc", "qdisc", "add", "dev", "eth0", "root", "netem")
 
-	if ne.Bandwidth > 0 {
-		// 帯域制限ありの場合
-		cmd = exec.Command("tc", "qdisc", "add", "dev", "eth0", "root", "netem",
-			"delay", strconv.Itoa(ne.Delay)+"ms",
-			"loss", strconv.Itoa(ne.Loss)+"%",
-			"rate", strconv.Itoa(ne.Bandwidth)+"mbit")
-	} else {
-		// 帯域制限なしの場合
-		cmd = exec.Command("tc", "qdisc", "add", "dev", "eth0", "root", "netem",
-			"delay", strconv.Itoa(ne.Delay)+"ms",
-			"loss", strconv.Itoa(ne.Loss)+"%")
+	// 遅延設定（0msでも設定）
+	if ne.Delay >= 0 {
+		args = append(args, "delay", strconv.Itoa(ne.Delay)+"ms")
 	}
 
+	// 損失設定（0%の場合は設定しない）
+	if ne.Loss > 0 {
+		args = append(args, "loss", strconv.Itoa(ne.Loss)+"%")
+	}
+
+	// 帯域制限設定（0の場合は設定しない）
+	if ne.Bandwidth > 0 {
+		args = append(args, "rate", strconv.Itoa(ne.Bandwidth)+"mbit")
+	}
+
+	// 全てのパラメータが0の場合はnoqueueを使用
+	if ne.Delay == 0 && ne.Loss == 0 && ne.Bandwidth == 0 {
+		args = []string{"tc", "qdisc", "add", "dev", "eth0", "root", "noqueue"}
+	}
+
+	cmd := exec.Command(args[0], args[1:]...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to apply network emulation: %v, output: %s", err, string(output))
