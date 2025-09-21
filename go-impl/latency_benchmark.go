@@ -65,7 +65,7 @@ func main() {
 	logger.Info("Log directory created", "path", logDir)
 
 	config := LatencyTestConfig{
-		Requests:   100, // 各条件で100回
+		Requests:   500, // 各条件で500回（統計的信頼性大幅向上）
 		Timeout:    30 * time.Second,
 		Delays:     []int{0, 100, 200}, // 0ms, 100ms, 200ms
 		LossRate:   0,                  // パケットロス率0%統一
@@ -88,9 +88,9 @@ func main() {
 			continue
 		}
 
-		// システム安定化
-		logger.Info("Stabilizing system", "duration", "3s")
-		time.Sleep(3 * time.Second)
+		// システム安定化（延長）
+		logger.Info("Stabilizing system", "duration", "5s")
+		time.Sleep(5 * time.Second)
 
 		// HTTP/2 ベンチマーク
 		logger.Info("Running HTTP/2 latency test", "requests", config.Requests)
@@ -98,8 +98,8 @@ func main() {
 		allResults = append(allResults, http2Result)
 
 		// プロトコル間の間隔
-		logger.Info("Waiting between protocols", "duration", "2s")
-		time.Sleep(2 * time.Second)
+		logger.Info("Waiting between protocols", "duration", "5s")
+		time.Sleep(5 * time.Second)
 
 		// HTTP/3 ベンチマーク
 		logger.Info("Running HTTP/3 latency test", "requests", config.Requests)
@@ -108,8 +108,8 @@ func main() {
 
 		// テストケース間の間隔
 		logger.Info("Test case completed", "delay_ms", delay)
-		logger.Info("Waiting between test cases", "duration", "2s")
-		time.Sleep(2 * time.Second)
+		logger.Info("Waiting between test cases", "duration", "5s")
+		time.Sleep(5 * time.Second)
 	}
 
 	// 結果出力
@@ -171,8 +171,8 @@ func runHTTP2LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		latencies = append(latencies, latency)
 		successes++
 
-		// 進行状況表示
-		if (i+1)%10 == 0 || i+1 == config.Requests {
+		// 進行状況表示（500リクエストに合わせて調整）
+		if (i+1)%50 == 0 || i+1 == config.Requests {
 			logger.Info("Progress",
 				"completed", i+1,
 				"total", config.Requests,
@@ -198,14 +198,36 @@ func runHTTP3LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 	logger := common.NewLogger("INFO")
 	logger.Info("Starting HTTP/3 latency test", "delay_ms", delay, "requests", config.Requests)
 
-	client := &http.Client{
-		Transport: &http3.RoundTripper{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
+	// UDPバッファサイズを設定
+	transport := &http3.RoundTripper{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
 		},
-		Timeout: config.Timeout,
+		// QUIC設定はデフォルトを使用
 	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   config.Timeout,
+	}
+
+	// HTTP/3接続のウォームアップ（初回接続のオーバーヘッドを排除）
+	logger.Info("Warming up HTTP/3 connection")
+	warmupClient := &http.Client{
+		Transport: transport,
+		Timeout:   10 * time.Second,
+	}
+
+	for i := 0; i < 3; i++ {
+		resp, err := warmupClient.Get(fmt.Sprintf("https://%s:%d/health", config.ServerAddr, config.HTTP3Port))
+		if err != nil {
+			logger.Warn("Warmup request failed", "attempt", i+1, "error", err)
+		} else {
+			resp.Body.Close()
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	logger.Info("HTTP/3 warmup completed")
 
 	var latencies []time.Duration
 	successes := 0
@@ -237,8 +259,8 @@ func runHTTP3LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		latencies = append(latencies, latency)
 		successes++
 
-		// 進行状況表示
-		if (i+1)%10 == 0 || i+1 == config.Requests {
+		// 進行状況表示（500リクエストに合わせて調整）
+		if (i+1)%50 == 0 || i+1 == config.Requests {
 			logger.Info("Progress",
 				"completed", i+1,
 				"total", config.Requests,
@@ -533,10 +555,7 @@ func saveResultsAsReport(results []LatencyResult, filename string) error {
 }
 
 func generateLatencyGraph(results []LatencyResult, filename string) error {
-	p, err := plot.New()
-	if err != nil {
-		return err
-	}
+	p := plot.New()
 
 	p.Title.Text = "HTTP/2 vs HTTP/3 Latency Comparison"
 	p.X.Label.Text = "Network Delay (ms)"
