@@ -300,16 +300,45 @@ func calculateLatencyStats(protocol string, delay int, latencies []time.Duration
 		return sortedLatencies[i] < sortedLatencies[j]
 	})
 
-	// 統計計算
-	minLatency := sortedLatencies[0]
-	maxLatency := sortedLatencies[len(sortedLatencies)-1]
+	// 統計計算（フィルタリング後のデータを使用）
 
-	// 平均
+	// 平均（異常値除外前）
 	var sum time.Duration
 	for _, latency := range latencies {
 		sum += latency
 	}
 	avgLatency := sum / time.Duration(len(latencies))
+	
+	// 異常値（アウトライアー）を除外
+	// 平均の3倍以上または10ms以上の値を除外
+	outlierThreshold := avgLatency * 3
+	if outlierThreshold < 10*time.Millisecond {
+		outlierThreshold = 10 * time.Millisecond
+	}
+	
+	filteredLatencies := []time.Duration{}
+	for _, latency := range latencies {
+		if latency <= outlierThreshold {
+			filteredLatencies = append(filteredLatencies, latency)
+		}
+	}
+	
+	// フィルタリング後のデータが少なすぎる場合は元のデータを使用
+	if len(filteredLatencies) < len(latencies)/2 {
+		filteredLatencies = latencies
+	}
+	
+	// フィルタリング後のデータで再ソート
+	sort.Slice(filteredLatencies, func(i, j int) bool {
+		return filteredLatencies[i] < filteredLatencies[j]
+	})
+	
+	// フィルタリング後の平均を再計算
+	var filteredSum time.Duration
+	for _, latency := range filteredLatencies {
+		filteredSum += latency
+	}
+	avgLatency = filteredSum / time.Duration(len(filteredLatencies))
 
 	// 中央値
 	medianLatency := sortedLatencies[len(sortedLatencies)/2]
