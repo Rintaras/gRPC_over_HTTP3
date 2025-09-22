@@ -308,31 +308,31 @@ func calculateLatencyStats(protocol string, delay int, latencies []time.Duration
 		sum += latency
 	}
 	avgLatency := sum / time.Duration(len(latencies))
-	
+
 	// 異常値（アウトライアー）を除外
 	// 平均の3倍以上または10ms以上の値を除外
 	outlierThreshold := avgLatency * 3
 	if outlierThreshold < 10*time.Millisecond {
 		outlierThreshold = 10 * time.Millisecond
 	}
-	
+
 	filteredLatencies := []time.Duration{}
 	for _, latency := range latencies {
 		if latency <= outlierThreshold {
 			filteredLatencies = append(filteredLatencies, latency)
 		}
 	}
-	
+
 	// フィルタリング後のデータが少なすぎる場合は元のデータを使用
 	if len(filteredLatencies) < len(latencies)/2 {
 		filteredLatencies = latencies
 	}
-	
+
 	// フィルタリング後のデータで再ソート
 	sort.Slice(filteredLatencies, func(i, j int) bool {
 		return filteredLatencies[i] < filteredLatencies[j]
 	})
-	
+
 	// フィルタリング後の平均を再計算
 	var filteredSum time.Duration
 	for _, latency := range filteredLatencies {
@@ -340,21 +340,25 @@ func calculateLatencyStats(protocol string, delay int, latencies []time.Duration
 	}
 	avgLatency = filteredSum / time.Duration(len(filteredLatencies))
 
-	// 中央値
-	medianLatency := sortedLatencies[len(sortedLatencies)/2]
+	// 最小値・最大値（フィルタリング後）
+	minLatency := filteredLatencies[0]
+	maxLatency := filteredLatencies[len(filteredLatencies)-1]
 
-	// P95, P99
-	p95Index := int(float64(len(sortedLatencies)) * 0.95)
-	p99Index := int(float64(len(sortedLatencies)) * 0.99)
-	if p95Index >= len(sortedLatencies) {
-		p95Index = len(sortedLatencies) - 1
+	// 中央値（フィルタリング後）
+	medianLatency := filteredLatencies[len(filteredLatencies)/2]
+
+	// P95, P99（フィルタリング後）
+	p95Index := int(float64(len(filteredLatencies)) * 0.95)
+	p99Index := int(float64(len(filteredLatencies)) * 0.99)
+	if p95Index >= len(filteredLatencies) {
+		p95Index = len(filteredLatencies) - 1
 	}
-	if p99Index >= len(sortedLatencies) {
-		p99Index = len(sortedLatencies) - 1
+	if p99Index >= len(filteredLatencies) {
+		p99Index = len(filteredLatencies) - 1
 	}
 
-	p95Latency := sortedLatencies[p95Index]
-	p99Latency := sortedLatencies[p99Index]
+	p95Latency := filteredLatencies[p95Index]
+	p99Latency := filteredLatencies[p99Index]
 
 	return LatencyResult{
 		Protocol:      protocol,
@@ -368,7 +372,7 @@ func calculateLatencyStats(protocol string, delay int, latencies []time.Duration
 		MedianLatency: medianLatency,
 		P95Latency:    p95Latency,
 		P99Latency:    p99Latency,
-		Latencies:     latencies,
+		Latencies:     filteredLatencies,
 	}
 }
 
