@@ -352,7 +352,7 @@ func printLatencyResults(results []LatencyResult) {
 	fmt.Println(strings.Repeat("-", 80))
 
 	for _, result := range results {
-		fmt.Printf("%-10s %-8d %-10d %-10d %-10.2f %-10.2f %-10.2f %-10.2f %-10.2f\n",
+		fmt.Printf("%-10s %-8d %-10d %-10d %-10.3f %-10.3f %-10.3f %-10.3f %-10.3f\n",
 			result.Protocol,
 			result.Delay,
 			result.Requests,
