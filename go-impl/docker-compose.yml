@@ -20,6 +20,25 @@ services:
       - LOG_LEVEL=INFO
     volumes:
       - ./certs:/app/certs
+    # リソース固定化設定
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    # CPU使用率制限
+    cpus: 2.0
+    mem_limit: 1g
+    memswap_limit: 1g
+    # プロセス優先度固定
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
@@ -40,6 +59,25 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - LOG_LEVEL=INFO
+    # リソース固定化設定
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    # CPU使用率制限
+    cpus: 2.0
+    mem_limit: 1g
+    memswap_limit: 1g
+    # プロセス優先度固定
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
     depends_on:
       - go-router
       - go-server
@@ -61,6 +99,25 @@ services:
     privileged: true
     environment:
       - LOG_LEVEL=INFO
+    # リソース固定化設定
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    # CPU使用率制限
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 512m
+    # プロセス優先度固定
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s

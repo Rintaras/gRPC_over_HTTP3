@@ -51,9 +51,11 @@ COPY --from=builder /app/client .
 COPY --from=builder /app/test_http_client .
 COPY --from=builder /app/latency_benchmark .
 COPY --from=builder /app/client/disable_offloads.sh .
+COPY --from=builder /app/scripts/fix_resources.sh .
 
 # Make scripts executable
 RUN chmod +x disable_offloads.sh
+RUN chmod +x fix_resources.sh
 
 # Keep container running
 CMD ["sleep", "infinity"]

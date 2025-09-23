@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -50,6 +51,14 @@ type LatencyResult struct {
 }
 
 func main() {
+	// リソース管理を初期化
+	resourceManager := common.NewResourceManager()
+
+	// リソース固定化を実行
+	if err := resourceManager.FixResources(); err != nil {
+		log.Printf("リソース固定化エラー: %v", err)
+	}
+
 	logger := common.NewLogger("INFO")
 	logger.Info("================================================")
 	logger.Info("Starting HTTP/2 and HTTP/3 Latency Benchmark")
@@ -131,6 +140,9 @@ func main() {
 	logger.Info("================================================")
 	logger.Info("Benchmark completed", "log_directory", logDir)
 	logger.Info("================================================")
+
+	// リソースクリーンアップ
+	resourceManager.CleanupResources()
 }
 
 func runHTTP2LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
