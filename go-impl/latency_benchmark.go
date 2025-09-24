@@ -65,7 +65,7 @@ func main() {
 	logger.Info("Log directory created", "path", logDir)
 
 	config := LatencyTestConfig{
-		Requests:   500, // 各条件で500回（統計的信頼性大幅向上）
+		Requests:   1000, // 各条件で1000回（統計的信頼性をさらに向上）
 		Timeout:    30 * time.Second,
 		Delays:     []int{0, 75, 150, 225}, // 0ms, 75ms, 150ms, 225ms
 		LossRate:   0,                      // パケットロス率0%統一
@@ -88,28 +88,28 @@ func main() {
 			continue
 		}
 
-		// システム安定化（延長）
-		logger.Info("Stabilizing system", "duration", "5s")
-		time.Sleep(5 * time.Second)
+		// システム安定化（さらに延長）
+		logger.Info("Stabilizing system", "duration", "10s")
+		time.Sleep(10 * time.Second)
 
 		// HTTP/2 ベンチマーク
 		logger.Info("Running HTTP/2 latency test", "requests", config.Requests)
 		http2Result := runHTTP2LatencyTest(config, delay)
 		allResults = append(allResults, http2Result)
 
-		// プロトコル間の間隔
-		logger.Info("Waiting between protocols", "duration", "5s")
-		time.Sleep(5 * time.Second)
+		// プロトコル間の間隔（延長）
+		logger.Info("Waiting between protocols", "duration", "10s")
+		time.Sleep(10 * time.Second)
 
 		// HTTP/3 ベンチマーク
 		logger.Info("Running HTTP/3 latency test", "requests", config.Requests)
 		http3Result := runHTTP3LatencyTest(config, delay)
 		allResults = append(allResults, http3Result)
 
-		// テストケース間の間隔
+		// テストケース間の間隔（延長）
 		logger.Info("Test case completed", "delay_ms", delay)
-		logger.Info("Waiting between test cases", "duration", "5s")
-		time.Sleep(5 * time.Second)
+		logger.Info("Waiting between test cases", "duration", "10s")
+		time.Sleep(10 * time.Second)
 	}
 
 	// 結果出力
@@ -171,8 +171,8 @@ func runHTTP2LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		latencies = append(latencies, latency)
 		successes++
 
-		// 進行状況表示（500リクエストに合わせて調整）
-		if (i+1)%50 == 0 || i+1 == config.Requests {
+		// 進行状況表示（1000リクエストに合わせて調整）
+		if (i+1)%100 == 0 || i+1 == config.Requests {
 			logger.Info("Progress",
 				"completed", i+1,
 				"total", config.Requests,
@@ -259,8 +259,8 @@ func runHTTP3LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		latencies = append(latencies, latency)
 		successes++
 
-		// 進行状況表示（500リクエストに合わせて調整）
-		if (i+1)%50 == 0 || i+1 == config.Requests {
+		// 進行状況表示（1000リクエストに合わせて調整）
+		if (i+1)%100 == 0 || i+1 == config.Requests {
 			logger.Info("Progress",
 				"completed", i+1,
 				"total", config.Requests,
