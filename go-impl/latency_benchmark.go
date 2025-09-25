@@ -67,8 +67,8 @@ func main() {
 	config := LatencyTestConfig{
 		Requests:   500, // 各条件で500回（統計的信頼性大幅向上）
 		Timeout:    30 * time.Second,
-		Delays:     []int{0, 100, 200}, // 0ms, 100ms, 200ms
-		LossRate:   0,                  // パケットロス率0%統一
+		Delays:     []int{0, 75, 150, 225}, // 0ms, 75ms, 150ms, 225ms
+		LossRate:   0,                      // パケットロス率0%統一
 		ServerAddr: "172.31.0.2",
 		HTTP2Port:  443,
 		HTTP3Port:  4433,
@@ -413,7 +413,7 @@ func printLatencyResults(results []LatencyResult) {
 		}
 	}
 
-	for _, delay := range []int{0, 100, 200} {
+	for _, delay := range []int{0, 75, 150, 225} {
 		http2Result, http2Exists := http2Results[delay]
 		http3Result, http3Exists := http3Results[delay]
 
@@ -566,7 +566,7 @@ func saveResultsAsReport(results []LatencyResult, filename string) error {
 		}
 	}
 
-	for _, delay := range []int{0, 100, 200} {
+	for _, delay := range []int{0, 75, 150, 225} {
 		http2Result, http2Exists := http2Results[delay]
 		http3Result, http3Exists := http3Results[delay]
 
