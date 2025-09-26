@@ -202,6 +202,3 @@ LOG_LEVEL=DEBUG docker-compose up -d
 - メトリクス: 構造化ログで出力
 - リソース使用量: Docker stats で監視
 
-## ライセンス
-
-このプロジェクトは研究目的で作成されています。

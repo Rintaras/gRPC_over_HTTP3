@@ -600,69 +600,64 @@ func saveResultsAsReport(results []LatencyResult, filename string) error {
 }
 
 func generateLatencyGraph(results []LatencyResult, filename string) error {
-	p := plot.New()
+    p := plot.New()
 
-	p.Title.Text = "HTTP/2 vs HTTP/3 Latency Comparison"
-	p.X.Label.Text = "Network Delay (ms)"
-	p.Y.Label.Text = "Average Latency (ms)"
+    p.Title.Text = "HTTP/2 vs HTTP/3 Latency (Bar)"
+    p.Y.Label.Text = "Average Latency (ms)"
 
-	// データを整理
-	http2Data := make(plotter.XYs, 0)
-	http3Data := make(plotter.XYs, 0)
+    // 遅延ごとの平均値を収集
+    delays := []int{0, 75, 150, 225}
+    http2Map := map[int]float64{}
+    http3Map := map[int]float64{}
+    for _, r := range results {
+        avgMs := float64(r.AvgLatency.Nanoseconds()) / 1e6
+        if r.Protocol == "HTTP/2" {
+            http2Map[r.Delay] = avgMs
+        } else if r.Protocol == "HTTP/3" {
+            http3Map[r.Delay] = avgMs
+        }
+    }
 
-	for _, result := range results {
-		if result.Protocol == "HTTP/2" {
-			http2Data = append(http2Data, plotter.XY{
-				X: float64(result.Delay),
-				Y: float64(result.AvgLatency.Nanoseconds()) / 1e6,
-			})
-		} else if result.Protocol == "HTTP/3" {
-			http3Data = append(http3Data, plotter.XY{
-				X: float64(result.Delay),
-				Y: float64(result.AvgLatency.Nanoseconds()) / 1e6,
-			})
-		}
-	}
+    // 値をplotter.Valuesに詰める（遅延の順序を固定）
+    http2Vals := make(plotter.Values, 0, len(delays))
+    http3Vals := make(plotter.Values, 0, len(delays))
+    labels := make([]string, 0, len(delays))
+    for _, d := range delays {
+        http2Vals = append(http2Vals, http2Map[d])
+        http3Vals = append(http3Vals, http3Map[d])
+        labels = append(labels, fmt.Sprintf("%d", d))
+    }
 
-	// プロット作成
-	http2Line, err := plotter.NewLine(http2Data)
-	if err != nil {
-		return err
-	}
-	http2Line.Color = plotutil.Color(0)
-	http2Line.Width = vg.Points(2)
+    // 棒の幅とオフセットを設定（グループ化された棒グラフ）
+    barWidth := vg.Points(18)
 
-	http3Line, err := plotter.NewLine(http3Data)
-	if err != nil {
-		return err
-	}
-	http3Line.Color = plotutil.Color(1)
-	http3Line.Width = vg.Points(2)
+    http2Bars, err := plotter.NewBarChart(http2Vals, barWidth)
+    if err != nil {
+        return err
+    }
+    http2Bars.LineStyle.Width = vg.Length(0)
+    http2Bars.Color = plotutil.Color(0)
+    http2Bars.Offset = -barWidth / 2
 
-	// ポイント追加
-	http2Points, err := plotter.NewScatter(http2Data)
-	if err != nil {
-		return err
-	}
-	http2Points.Color = plotutil.Color(0)
-	http2Points.Shape = plotutil.Shape(0)
+    http3Bars, err := plotter.NewBarChart(http3Vals, barWidth)
+    if err != nil {
+        return err
+    }
+    http3Bars.LineStyle.Width = vg.Length(0)
+    http3Bars.Color = plotutil.Color(1)
+    http3Bars.Offset = barWidth / 2
 
-	http3Points, err := plotter.NewScatter(http3Data)
-	if err != nil {
-		return err
-	}
-	http3Points.Color = plotutil.Color(1)
-	http3Points.Shape = plotutil.Shape(1)
+    p.Add(http2Bars, http3Bars)
+    p.Legend.Add("HTTP/2", http2Bars)
+    p.Legend.Add("HTTP/3", http3Bars)
 
-	p.Add(http2Line, http2Points, http3Line, http3Points)
-	p.Legend.Add("HTTP/2", http2Line, http2Points)
-	p.Legend.Add("HTTP/3", http3Line, http3Points)
+    // X軸ラベルを遅延カテゴリに
+    p.NominalX(labels...)
 
-	// グリッド追加
-	p.Add(plotter.NewGrid())
+    // グリッド追加
+    p.Add(plotter.NewGrid())
 
-	// ファイル保存
-	return p.Save(8*vg.Inch, 6*vg.Inch, filename)
+    return p.Save(8*vg.Inch, 6*vg.Inch, filename)
 }
 
 func setNetworkConditions(delay, loss int) error {
