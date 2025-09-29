@@ -12,14 +12,14 @@ import (
 
 type LatencyResult struct {
 	Protocol   string  `json:"protocol"`
-	Delay      int     `json:"delay"`
+	Delay      int     `json:"delay_ms"`
 	Requests   int     `json:"requests"`
 	Successes  int     `json:"successes"`
-	MinLatency float64 `json:"min_latency"`
-	MaxLatency float64 `json:"max_latency"`
-	AvgLatency float64 `json:"avg_latency"`
-	P95Latency float64 `json:"p95_latency"`
-	P99Latency float64 `json:"p99_latency"`
+	MinLatency float64 `json:"min_latency_ms"`
+	MaxLatency float64 `json:"max_latency_ms"`
+	AvgLatency float64 `json:"avg_latency_ms"`
+	P95Latency float64 `json:"p95_latency_ms"`
+	P99Latency float64 `json:"p99_latency_ms"`
 }
 
 type RunAnalysis struct {

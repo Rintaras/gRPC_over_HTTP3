@@ -190,7 +190,7 @@ func runHTTP2LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 				"total", config.Requests,
 				"successes", successes,
 				"failures", failures,
-				"current_latency", latency.Round(time.Millisecond))
+				"current_latency", latency.Nanoseconds())
 		}
 	}
 
@@ -201,7 +201,7 @@ func runHTTP2LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		"delay_ms", delay,
 		"successes", successes,
 		"failures", failures,
-		"avg_latency", result.AvgLatency.Round(time.Millisecond))
+		"avg_latency", result.AvgLatency.Nanoseconds())
 
 	return result
 }
@@ -278,7 +278,7 @@ func runHTTP3LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 				"total", config.Requests,
 				"successes", successes,
 				"failures", failures,
-				"current_latency", latency.Round(time.Millisecond))
+				"current_latency", latency.Nanoseconds())
 		}
 	}
 
@@ -289,7 +289,7 @@ func runHTTP3LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		"delay_ms", delay,
 		"successes", successes,
 		"failures", failures,
-		"avg_latency", result.AvgLatency.Round(time.Millisecond))
+		"avg_latency", result.AvgLatency.Nanoseconds())
 
 	return result
 }
