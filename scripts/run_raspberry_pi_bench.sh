@@ -137,7 +137,7 @@ log_network_conditions() {
 }
 
 # Function to run HTTP/2 benchmark with h2load
-run_http2_bench() {
+関連研究／先行研究run_http2_bench() {
     local delay=$1
     local loss=$2
     local log_file="$LOG_DIR/h2_${delay}ms_${loss}pct.log"

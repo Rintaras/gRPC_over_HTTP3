@@ -19,11 +19,11 @@ def load_and_analyze_results(summary_dir):
                 for result in run_results:
                     result['run'] = i
                     # ナノ秒をミリ秒に変換
-                    result['avg_latency_ms'] = result['avg_latency_ms'] / 1e6
-                    result['min_latency_ms'] = result['min_latency_ms'] / 1e6
-                    result['max_latency_ms'] = result['max_latency_ms'] / 1e6
-                    result['p95_latency_ms'] = result['p95_latency_ms'] / 1e6
-                    result['p99_latency_ms'] = result['p99_latency_ms'] / 1e6
+                    result['avg_latency_ns'] = result['avg_latency_ns'] / 1e6
+                    result['min_latency_ns'] = result['min_latency_ns'] / 1e6
+                    result['max_latency_ns'] = result['max_latency_ns'] / 1e6
+                    result['p95_latency_ns'] = result['p95_latency_ns'] / 1e6
+                    result['p99_latency_ns'] = result['p99_latency_ns'] / 1e6
                     results.append(result)
     
     # 遅延別分析
@@ -37,8 +37,8 @@ def load_and_analyze_results(summary_dir):
         
         if h2_data and h3_data:
             # 平均値計算
-            h2_avgs = [r['avg_latency_ms'] for r in h2_data]
-            h3_avgs = [r['avg_latency_ms'] for r in h3_data]
+            h2_avgs = [r['avg_latency_ns'] for r in h2_data]
+            h3_avgs = [r['avg_latency_ns'] for r in h3_data]
             
             h2_mean = sum(h2_avgs) / len(h2_avgs)
             h3_mean = sum(h3_avgs) / len(h3_avgs)

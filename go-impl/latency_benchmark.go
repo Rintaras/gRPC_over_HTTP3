@@ -23,6 +23,8 @@ import (
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/plotutil"
 	"gonum.org/v1/plot/vg"
+	"gonum.org/v1/plot/vg/draw"
+	"gonum.org/v1/plot/vg/vgimg"
 )
 
 type LatencyTestConfig struct {
@@ -41,13 +43,13 @@ type LatencyResult struct {
 	Requests      int             `json:"requests"`
 	Successes     int             `json:"successes"`
 	Failures      int             `json:"failures"`
-	MinLatency    time.Duration   `json:"min_latency_ms"`
-	MaxLatency    time.Duration   `json:"max_latency_ms"`
-	AvgLatency    time.Duration   `json:"avg_latency_ms"`
-	MedianLatency time.Duration   `json:"median_latency_ms"`
-	P95Latency    time.Duration   `json:"p95_latency_ms"`
-	P99Latency    time.Duration   `json:"p99_latency_ms"`
-	Latencies     []time.Duration `json:"latencies"`
+	MinLatency    time.Duration   `json:"min_latency_ns"`    // レイテンシ値（ナノ秒単位）
+	MaxLatency    time.Duration   `json:"max_latency_ns"`    // レイテンシ値（ナノ秒単位）
+	AvgLatency    time.Duration   `json:"avg_latency_ns"`    // レイテンシ値（ナノ秒単位）
+	MedianLatency time.Duration   `json:"median_latency_ns"` // レイテンシ値（ナノ秒単位）
+	P95Latency    time.Duration   `json:"p95_latency_ns"`    // レイテンシ値（ナノ秒単位）
+	P99Latency    time.Duration   `json:"p99_latency_ns"`    // レイテンシ値（ナノ秒単位）
+	Latencies     []time.Duration `json:"latencies_ns"`      // レイテンシ値（ナノ秒単位）
 }
 
 func main() {
@@ -97,9 +99,9 @@ func main() {
 			continue
 		}
 
-		// システム安定化（さらに延長）
-		logger.Info("Stabilizing system", "duration", "10s")
-		time.Sleep(10 * time.Second)
+		// システム安定化（遅延条件での安定性向上のため延長）
+		logger.Info("Stabilizing system", "duration", "15s")
+		time.Sleep(15 * time.Second)
 
 		// HTTP/2 ベンチマーク
 		logger.Info("Running HTTP/2 latency test", "requests", config.Requests)
@@ -107,8 +109,8 @@ func main() {
 		allResults = append(allResults, http2Result)
 
 		// プロトコル間の間隔（延長）
-		logger.Info("Waiting between protocols", "duration", "10s")
-		time.Sleep(10 * time.Second)
+		logger.Info("Waiting between protocols", "duration", "15s")
+		time.Sleep(15 * time.Second)
 
 		// HTTP/3 ベンチマーク
 		logger.Info("Running HTTP/3 latency test", "requests", config.Requests)
@@ -149,8 +151,16 @@ func runHTTP2LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 	logger := common.NewLogger("INFO")
 	logger.Info("Starting HTTP/2 latency test", "delay_ms", delay, "requests", config.Requests)
 
+	// HTTP/2クライアントの最適化（遅延条件での安定性向上）
+	transport := &http.Transport{
+		MaxIdleConns:        10,
+		MaxIdleConnsPerHost: 2,
+		IdleConnTimeout:     30 * time.Second,
+		DisableKeepAlives:   false,
+	}
 	client := &http.Client{
-		Timeout: config.Timeout,
+		Transport: transport,
+		Timeout:   config.Timeout,
 	}
 
 	var latencies []time.Duration
@@ -182,6 +192,15 @@ func runHTTP2LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		latency := time.Since(requestStart)
 		latencies = append(latencies, latency)
 		successes++
+
+		// デバッグ: 最初の数回のレイテンシ値を詳細表示
+		if i < 5 {
+			logger.Info("Debug latency",
+				"request", i+1,
+				"latency_ns", latency.Nanoseconds(),
+				"latency_us", float64(latency.Nanoseconds())/1000,
+				"latency_ms", float64(latency.Nanoseconds())/1000000)
+		}
 
 		// 進行状況表示（1000リクエストに合わせて調整）
 		if (i+1)%100 == 0 || i+1 == config.Requests {
@@ -271,6 +290,15 @@ func runHTTP3LatencyTest(config LatencyTestConfig, delay int) LatencyResult {
 		latencies = append(latencies, latency)
 		successes++
 
+		// デバッグ: 最初の数回のレイテンシ値を詳細表示
+		if i < 5 {
+			logger.Info("Debug latency",
+				"request", i+1,
+				"latency_ns", latency.Nanoseconds(),
+				"latency_us", float64(latency.Nanoseconds())/1000,
+				"latency_ms", float64(latency.Nanoseconds())/1000000)
+		}
+
 		// 進行状況表示（1000リクエストに合わせて調整）
 		if (i+1)%100 == 0 || i+1 == config.Requests {
 			logger.Info("Progress",
@@ -322,10 +350,10 @@ func calculateLatencyStats(protocol string, delay int, latencies []time.Duration
 	avgLatency := sum / time.Duration(len(latencies))
 
 	// 異常値（アウトライアー）を除外
-	// 平均の3倍以上または10ms以上の値を除外
-	outlierThreshold := avgLatency * 3
-	if outlierThreshold < 10*time.Millisecond {
-		outlierThreshold = 10 * time.Millisecond
+	// 平均の2倍以上または5ms以上の値を除外（より厳格な設定）
+	outlierThreshold := avgLatency * 2
+	if outlierThreshold < 5*time.Millisecond {
+		outlierThreshold = 5 * time.Millisecond
 	}
 
 	filteredLatencies := []time.Duration{}
@@ -600,11 +628,6 @@ func saveResultsAsReport(results []LatencyResult, filename string) error {
 }
 
 func generateLatencyGraph(results []LatencyResult, filename string) error {
-	p := plot.New()
-
-	p.Title.Text = "HTTP/2 vs HTTP/3 Latency (Bar)"
-	p.Y.Label.Text = "Average Latency (ms)"
-
 	// 遅延ごとの平均値を収集
 	delays := []int{0, 75, 150, 225}
 	http2Map := map[int]float64{}
@@ -618,25 +641,38 @@ func generateLatencyGraph(results []LatencyResult, filename string) error {
 		}
 	}
 
-	// 値をplotter.Valuesに詰める（遅延の順序を固定）
+	// データ準備
 	http2Vals := make(plotter.Values, 0, len(delays))
 	http3Vals := make(plotter.Values, 0, len(delays))
+	improvementVals := make(plotter.Values, 0, len(delays))
 	labels := make([]string, 0, len(delays))
+
 	for _, d := range delays {
-		http2Vals = append(http2Vals, http2Map[d])
-		http3Vals = append(http3Vals, http3Map[d])
-		labels = append(labels, fmt.Sprintf("%d", d))
+		http2Val := http2Map[d]
+		http3Val := http3Map[d]
+		http2Vals = append(http2Vals, http2Val)
+		http3Vals = append(http3Vals, http3Val)
+
+		// パフォーマンス改善率を計算（負の値が改善を示す）
+		improvement := ((http3Val - http2Val) / http2Val) * 100
+		improvementVals = append(improvementVals, improvement)
+
+		labels = append(labels, fmt.Sprintf("%dms 0%% loss", d))
 	}
 
-	// 棒の幅とオフセットを設定（グループ化された棒グラフ）
-	barWidth := vg.Points(18)
+	// 1つ目のプロット: Response Time Comparison
+	p1 := plot.New()
+	p1.Title.Text = "Response Time Comparison"
+	p1.Y.Label.Text = "Response Time (ms)"
+
+	barWidth := vg.Points(20)
 
 	http2Bars, err := plotter.NewBarChart(http2Vals, barWidth)
 	if err != nil {
 		return err
 	}
 	http2Bars.LineStyle.Width = vg.Length(0)
-	http2Bars.Color = plotutil.Color(0)
+	http2Bars.Color = plotutil.Color(0) // 青色
 	http2Bars.Offset = -barWidth / 2
 
 	http3Bars, err := plotter.NewBarChart(http3Vals, barWidth)
@@ -644,20 +680,67 @@ func generateLatencyGraph(results []LatencyResult, filename string) error {
 		return err
 	}
 	http3Bars.LineStyle.Width = vg.Length(0)
-	http3Bars.Color = plotutil.Color(1)
+	http3Bars.Color = plotutil.Color(1) // オレンジ色
 	http3Bars.Offset = barWidth / 2
 
-	p.Add(http2Bars, http3Bars)
-	p.Legend.Add("HTTP/2", http2Bars)
-	p.Legend.Add("HTTP/3", http3Bars)
+	p1.Add(http2Bars, http3Bars)
+	p1.Legend.Add("HTTP/2", http2Bars)
+	p1.Legend.Add("HTTP/3", http3Bars)
+	p1.NominalX(labels...)
+	p1.Add(plotter.NewGrid())
+	p1.Y.Min = 0
 
-	// X軸ラベルを遅延カテゴリに
-	p.NominalX(labels...)
+	// 2つ目のプロット: HTTP/3 Performance Improvement
+	p2 := plot.New()
+	p2.Title.Text = "HTTP/3 Performance Improvement vs HTTP/2"
+	p2.Y.Label.Text = "Performance Improvement (%)"
 
-	// グリッド追加
-	p.Add(plotter.NewGrid())
+	improvementBars, err := plotter.NewBarChart(improvementVals, barWidth*2)
+	if err != nil {
+		return err
+	}
+	improvementBars.LineStyle.Width = vg.Length(0)
+	improvementBars.Color = plotutil.Color(2) // 赤色
+	improvementBars.Offset = 0
 
-	return p.Save(8*vg.Inch, 6*vg.Inch, filename)
+	p2.Add(improvementBars)
+	p2.NominalX(labels...)
+	p2.Add(plotter.NewGrid())
+	p2.Y.Min = -60
+	p2.Y.Max = 0
+
+	// 値を棒グラフの上に表示
+	for i, val := range improvementVals {
+		text, err := plotter.NewLabels(plotter.XYLabels{
+			XYs:    []plotter.XY{{X: float64(i), Y: val}},
+			Labels: []string{fmt.Sprintf("%.1f%%", val)},
+		})
+		if err == nil {
+			p2.Add(text)
+		}
+	}
+
+	// 2つのプロットを縦に配置して保存
+	img := vgimg.New(12*vg.Inch, 10*vg.Inch)
+	dc := draw.New(img)
+
+	tiles := draw.Tiles{
+		Rows: 2,
+		Cols: 1,
+	}
+
+	p1.Draw(tiles.At(dc, 0, 0))
+	p2.Draw(tiles.At(dc, 1, 0))
+
+	w, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	png := vgimg.PngCanvas{Canvas: img}
+	_, err = png.WriteTo(w)
+	return err
 }
 
 func setNetworkConditions(delay, loss int) error {
