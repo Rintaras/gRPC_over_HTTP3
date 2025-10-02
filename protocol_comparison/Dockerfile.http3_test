@@ -1,0 +1,13 @@
+FROM golang:1.21
+
+WORKDIR /app
+
+COPY client/http3_client.go .
+
+RUN go mod init http3-test && \
+    go get github.com/quic-go/quic-go@v0.40.1 && \
+    go mod tidy && \
+    go build -o http3_test .
+
+ENTRYPOINT ["./http3_test"]
+

@@ -1,8 +1,0 @@
-services:
-  http3-server:
-    build: .
-    ports:
-      - "8443:8443/udp"
-      - "8443:8443/tcp"
-    container_name: http3-server
-    restart: unless-stopped

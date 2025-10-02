@@ -1,0 +1,80 @@
+# バイナリファイル
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+main
+router
+benchmark
+scheduler-analysis
+router-benchmark
+quick_test
+
+# ログファイル
+*.log
+logs/
+*.csv
+
+# 一時ファイル
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker関連
+.dockerignore
+
+# 証明書ファイル（セキュリティのため）
+*.pem
+*.key
+*.crt
+*.p12
+
+# ベンチマーク結果
+results/
+benchmark_results_*.csv
+*.png
+*.jpg
+*.jpeg
+
+# 環境設定
+.env
+.env.local
+.env.production
+
+# 依存関係
+vendor/
+node_modules/
+
+# ビルド成果物
+dist/
+build/
+target/
+
+# テストカバレッジ
+coverage/
+*.cover
+*.out
+
+# プロファイリング
+*.prof
+*.pprof
+
+# システムファイル
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

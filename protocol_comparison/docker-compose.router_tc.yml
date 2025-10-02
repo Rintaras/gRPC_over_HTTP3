@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  http3-server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: http3-server
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    cap_add:
+      - NET_ADMIN
+    cpuset: "0"
+    cpu_shares: 2048
+    networks:
+      - protocol_net
+
+  router:
+    build:
+      context: .
+      dockerfile: Dockerfile.router_tc
+    ports:
+      - "8443:8443/udp"
+      - "8443:8443/tcp"
+      - "8444:8444/tcp"
+      - "9090:9090/tcp"
+    container_name: network-router
+    restart: unless-stopped
+    depends_on:
+      - http3-server
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - BANDWIDTH=${BANDWIDTH:-100mbit}
+      - LATENCY=${LATENCY:-0ms}
+      - LOSS=${LOSS:-0%}
+    networks:
+      - protocol_net
+
+networks:
+  protocol_net:
+    driver: bridge
